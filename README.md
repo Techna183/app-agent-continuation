@@ -26,10 +26,27 @@ App developers are being offered a false dichotomy:
    market outcome is a thousand mediocre in-app chatbots, while users
    already have an agent they chose, trust, and pay for.
 
+Two structural asymmetries make both futures wrong:
+
+- **The harness asymmetry.** A frontier agent surface is a *harness* —
+  the agentic loop, tool orchestration, memory, multimodal streaming,
+  safety, and years of accumulated default intelligence — built with
+  thousands of engineer-years and improved with every model
+  generation. Hand off to it and you get all of that for free, on
+  someone else's R&D budget. Rebuild it in-app and you're racing
+  opponents whose core business is winning that race.
+- **The native ceiling.** What apps do best — first-class native
+  interfaces built on direct manipulation, spatial layout, gesture,
+  and instant feedback (social, games, creative tools, maps) — is not
+  something a chat surface is on a path to replace. A widget in an
+  iframe inside someone else's conversation is a fundamentally lower
+  ceiling than a native app with full platform access.
+
 Sidequest is the third path: stay native when native wins, and when a
 moment genuinely calls for an agentic chat experience, hand it off to
 the user's agent of choice — scoped tools, signed context, structured
-results, focus returned. Best of both worlds, no rebuilding either one.
+results, focus returned. Each side operates where it holds an advantage
+the other cannot buy.
 
 ## Contents
 

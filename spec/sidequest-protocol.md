@@ -69,15 +69,61 @@ app, to a quality bar set by frontier assistants. The market outcome of
 this path is a thousand mediocre in-app chatbots, while the user
 already has an agent they chose, trust, and pay for.
 
+Underneath the dichotomy are two structural asymmetries, and Sidequest
+is designed around taking both seriously rather than fighting either.
+
+#### The harness asymmetry: agent harnesses are brutally hard to build
+
+A frontier agent surface is not a chat UI with an API key behind it.
+It is a *harness*: the agentic loop and its recovery behaviors, tool
+selection and orchestration across many servers, context management
+over long sessions, streaming multimodal rendering, memory and
+personalization, safety and abuse systems, evaluation infrastructure,
+and — critically — the accumulated default behaviors and judgment that
+make a frontier model actually useful in open-ended conversation.
+Frontier AI companies pour thousands of engineer-years into this
+layer, improve it with every model generation, and amortize the cost
+across hundreds of millions of users.
+
+An app developer who hands off to that harness gets all of it **for
+free, forever, on someone else's R&D budget** — including improvements
+that haven't shipped yet. An app developer who embeds their own agent
+is signing up to compete with it: a depreciating asset in a race
+against opponents whose core business is winning that race. For the
+overwhelming majority of app builders, that is not a resource-rational
+fight. The rational move is to *use* the frontier harness for the
+chat-based, AI-forward moments of a workflow — which is exactly the
+dispatch half of Sidequest.
+
+#### The native ceiling: agent surfaces will not replace first-class UX
+
+The symmetric asymmetry runs the other way. What app developers do
+best — beautiful, native, first-class interfaces — is not something a
+conversational surface is on a path to replace. Social feeds, video
+games, mapping, creative tools, camera experiences, anything built on
+direct manipulation, spatial layout, gesture, motion, or sub-100ms
+feedback loops: these are irreducibly interface-shaped, not
+conversation-shaped. Agent surfaces will get richer at hosting app
+content — embedded widgets in an iframe inside a chat thread already
+exist — but a widget inside someone else's conversation is a
+fundamentally lower ceiling than a first-class native app with full
+platform access, and the strongest UX categories live far above that
+ceiling. The agent platforms' own app frameworks implicitly concede
+this: they render *fragments* of apps, on the agent's terms, inside
+the agent's chrome.
+
+So neither side should swallow the other — and neither side can.
+
 **Sidequest is the third path.** The user stays in your app when native
 is the right modality. When a moment genuinely calls for an agentic
 chat experience, your app dispatches a *sidequest* to the **user's
 agent of choice** — carrying signed context, scoped access to your MCP
 server, and a return address. The agent does the work with your tools,
 your backend receives the structured result, and the user comes back to
-your app with the work done. Best of both worlds: native experiences
-where they win, frontier-quality agent experiences where they win, and
-no requirement that either side swallow the other.
+your app with the work done. Each side operates where it holds a
+structural advantage the other cannot buy: the app keeps the interface
+it can build and the agent cannot, and borrows the harness it cannot
+build and the agent already has.
 
 For agent platforms, the incentive is symmetric: Sidequest makes every
 native app a source of high-intent, context-rich sessions, and being
