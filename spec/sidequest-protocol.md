@@ -31,6 +31,13 @@ your app's tools, and returned from. Mechanically, Sidequest specifies
 `startActivityForResult`, applied to a delegated conversational work
 session instead of an authorization grant.
 
+The relationship to MCP in one line: **MCP connects the assistant to
+the application's capabilities; Sidequest connects the experience.**
+MCP governs what the agent can do against the app's backend. Sidequest
+governs how the *task* moves — carrying intent, context, permissions,
+conversation, and completed work across the app/assistant boundary,
+in both directions, without the user reconstructing it at every edge.
+
 The specification is split into two conformance profiles, reflecting a
 deliberate boundary:
 
@@ -69,8 +76,11 @@ app, to a quality bar set by frontier assistants. The market outcome of
 this path is a thousand mediocre in-app chatbots, while the user
 already has an agent they chose, trust, and pay for.
 
-Underneath the dichotomy are two structural asymmetries, and Sidequest
-is designed around taking both seriously rather than fighting either.
+Neither future begins with the experience users actually want. The
+first gives every application a lesser assistant; the second gives
+every assistant a lesser application. Underneath the dichotomy are
+three structural asymmetries, and Sidequest is designed around taking
+all of them seriously rather than fighting any of them.
 
 #### The harness asymmetry: agent harnesses are brutally hard to build
 
@@ -114,25 +124,92 @@ the agent's chrome.
 
 So neither side should swallow the other — and neither side can.
 
+#### The relationship asymmetry: understanding compounds in one assistant
+
+The third asymmetry belongs to the user. A personal assistant's value
+comes from accumulated understanding — finances, household, health
+considerations, habits, history, taste — and that understanding
+compounds only if it lives in *one* relationship. The per-app-copilot
+future fragments it: each in-app assistant understands a narrow
+office, none understands the whole person, and the user reintroduces
+themselves in every application they open. Nobody organizes their real
+life this way; a person with an exceptional assistant wants that
+assistant across many contexts, growing more valuable as the
+relationship deepens.
+
+No application can replicate this, and no application should try: the
+personal context rightly belongs to the assistant the user chose and
+trusts (see §10.6 — the assistant is also the *privacy boundary*
+around that context). A one-off in-app shopping assistant may know the
+inventory; it will never know the user. **The app knows the domain.
+The assistant knows the person.** Sidequest is the mechanism that lets
+both kinds of knowledge act on the same task without either side
+surrendering its half.
+
 **Sidequest is the third path.** The user stays in your app when native
 is the right modality. When a moment genuinely calls for an agentic
 chat experience, your app dispatches a *sidequest* to the **user's
-agent of choice** — carrying signed context, scoped access to your MCP
-server, and a return address. The agent does the work with your tools,
-your backend receives the structured result, and the user comes back to
-your app with the work done. Each side operates where it holds a
-structural advantage the other cannot buy: the app keeps the interface
-it can build and the agent cannot, and borrows the harness it cannot
-build and the agent already has.
+assistant of choice** — carrying signed context, scoped access to your
+MCP server, and a return address. The assistant does the work with your
+tools and its accumulated understanding of the user, your backend
+receives the structured result, and the user comes back to your app
+with the work done. Each side operates where it holds a structural
+advantage the other cannot buy: the app keeps the interface it can
+build and the agent cannot, and borrows the harness — and the
+relationship — it cannot build and the agent already has.
 
 For agent platforms, the incentive is symmetric: Sidequest makes every
 native app a source of high-intent, context-rich sessions, and being
-"the user's agent of choice" becomes a destination worth competing for.
+"the user's assistant of choice" becomes a destination worth competing
+for. Sidequest does not weaken frontier assistants — it makes them more
+indispensable: the assistant does not need to replace every product
+interface to become the trusted intelligence that accompanies the user
+across all of them.
 
-### 2.2 The mechanical problem
+### 2.2 A user journey: choosing a couch
 
-Today, an application that wants an agent to perform work on the user's
-behalf *inside the agent's own UI* has only ad-hoc pieces:
+The task-shape argument in one concrete story. A user shopping for a
+couch begins inside a retail app, because early shopping is discovery:
+inspecting fabrics, comparing dimensions, saving favorites, rejecting
+twenty couches in seconds without explaining why. This phase is
+irreducibly native — visual, comparative, fast.
+
+Then the shortlist narrows to three, and the task changes nature. It
+becomes *judgment*: should they spend $6,000 while trying to reduce
+discretionary spending? Is that fabric a mistake given the dog, or the
+allergies? Are they choosing the fashionable option when they
+consistently prefer comfort and durability? The retail app knows the
+couch; it knows none of this about the person — and shouldn't.
+
+Today the user bridges the gap by hand: copying links, taking
+screenshots, reconstructing the session inside ChatGPT or Claude. With
+Sidequest, the app offers **"Ask my assistant."** The user's chosen
+assistant opens with the shortlist and whatever context the user
+elected to share; the retailer's MCP server supplies product knowledge;
+the assistant supplies personal context and frontier intelligence. When
+the decision is made, the structured result returns to the retail app,
+where configuration, delivery, and checkout are waiting — the surfaces
+trade the task back and forth as its nature changes, and neither
+pretends to be the other.
+
+This scenario is used as the spec's running example (the fictional
+retailer **Snug**, `app.snug.example`).
+
+### 2.3 The mechanical problem
+
+The state of the art for moving a task from an application into a
+personal assistant is **copy and paste**. Users copy text or take a
+screenshot, paste it into the assistant they already trust, explain
+what they were doing, and continue there. Copy-paste has become the
+unofficial interoperability layer between applications and personal
+AI: crude, lossy, and manual — but predictable, which is more than can
+be said for the lottery of another half-built in-app assistant with no
+memory of the user. Sidequest exists to replace that layer with a
+specified one.
+
+An application that wants to do better today — have the agent perform
+work on the user's behalf *inside the agent's own UI* — has only
+ad-hoc pieces:
 
 - **Handoff in** is limited to unspecified, lossy, host-specific query
   parameters (`https://chatgpt.com/?q=...`,
@@ -155,7 +232,26 @@ non-interoperable version of the same flow. There is no equivalent of
 the well-understood OAuth round trip — *hand off → do work → return
 with result* — for agentic sessions.
 
-### 2.3 Prior art
+Three things must therefore exist, and they structure this spec:
+
+1. **Standard invocation of the user's chosen assistant** across web,
+   desktop, and mobile — the dispatch envelope and endpoint (§7).
+2. **A handoff that carries more than a pasted prompt** — application
+   state, intended outcome, supporting context, and user-permissioned,
+   scoped capabilities via MCP (§5–6, §7.2).
+3. **A handoff that works in both directions** — a structured result
+   returned to the application, the user brought back to where the
+   task began (§6.3, §8), and related sidequests able to resume the
+   same assistant thread instead of starting over (§7.4).
+
+A primitive version can be prototyped with today's `?q=` deep links
+(§9), but its limits appear immediately: context crammed into a
+prompt, no reliable resumption, no clean structured return. MCP alone
+does not close the gap either — it lets the assistant write to the
+application's backend, but does not complete the *user-facing*
+continuation.
+
+### 2.4 Prior art
 
 | Prior art | What Sidequest borrows |
 |---|---|
@@ -164,8 +260,9 @@ with result* — for agentic sessions.
 | **OpenID Connect `request` object (JWS)** ([OIDC Core §6]) | Signed request payload so the receiving party can verify the Initiator |
 | **MCP SEP-414 (trace context via `_meta`)** | Established pattern for threading cross-cutting correlation data through tool calls in `_meta` |
 | **W3C Web Share Target / App Links / Universal Links** | Platform-verified association between a return URI and the Initiating app |
+| **Amazon Alexa "Send to Phone"** | Product precedent for cross-surface continuation: begin a task on the surface suited to one phase (voice), continue on the surface suited to the next (visual/mobile), preserving user intent across the boundary |
 
-### 2.4 Why an Extensions-Track SEP
+### 2.5 Why an Extensions-Track SEP
 
 Sidequest is too opinionated for MCP core: it prescribes an
 application-level workflow, not a transport or message primitive. The
@@ -176,7 +273,7 @@ demonstrates demand. Agent workflows and the apps ecosystem are within
 the project's stated priority areas; Sidequest is positioned as
 *interop for agentic app-to-agent workflows*.
 
-### 2.5 Non-goals
+### 2.6 Non-goals
 
 - **Replacing direct API integration.** If an application wants a fully
   owned loop, calling a model API directly with the same tools remains
@@ -323,7 +420,7 @@ ways:
      "result": {
        "sessionId": "sq_8f4b…",
        "expiresAt": "2026-07-08T05:00:00Z",
-       "allowedTools": ["stargraph_query", "stargraph_plan", "sidequest__complete"],
+       "allowedTools": ["snug_get_shortlist", "snug_get_product", "snug_save_decision", "sidequest__complete"],
        "instructions": "Optional server guidance for the model, scoped to this sidequest."
      }
    }
@@ -344,8 +441,8 @@ pattern:
 {
   "method": "tools/call",
   "params": {
-    "name": "stargraph_query",
-    "arguments": { "target": "NGC 6543" },
+    "name": "snug_get_product",
+    "arguments": { "productId": "couch-mira-3s" },
     "_meta": {
       "io.github.techna183.sidequest/session": {
         "sessionId": "sq_8f4b…",
@@ -423,12 +520,12 @@ and — for Hosts supporting embedded UI (e.g. Apps-SDK-style widgets) —
 ```json
 {
   "content": [
-    { "type": "text", "text": "Sidequest complete. The user can return to Stargraph." }
+    { "type": "text", "text": "Sidequest complete. The user can return to Snug." }
   ],
   "structuredContent": {
     "io.github.techna183.sidequest/return": {
-      "returnUri": "https://app.stargraph.example/sidequest/return?session=sq_8f4b…",
-      "label": "Return to Stargraph"
+      "returnUri": "https://app.snug.example/sidequest/return?session=sq_8f4b…",
+      "label": "Return to Snug"
     }
   }
 }
@@ -500,7 +597,7 @@ Initiator. Payload claims:
 
 ```json
 {
-  "iss": "https://app.stargraph.example",
+  "iss": "https://app.snug.example",
   "aud": "https://chatgpt.com",
   "iat": 1783822800,
   "exp": 1783824600,
@@ -510,20 +607,23 @@ Initiator. Payload claims:
     "version": "1.0",
     "sessionId": "sq_8f4b…",
     "app": {
-      "name": "Stargraph",
-      "iconUri": "https://app.stargraph.example/icon.png"
+      "name": "Snug",
+      "iconUri": "https://app.snug.example/icon.png"
     },
     "mcp": {
-      "serverUrl": "https://mcp.stargraph.example/",
-      "requestedTools": ["stargraph_query", "stargraph_plan"]
+      "serverUrl": "https://mcp.snug.example/",
+      "requestedTools": ["snug_get_shortlist", "snug_get_product", "snug_save_decision"]
     },
-    "prompt": "Plan tonight's observation session for the attached target list.",
+    "prompt": "Help me decide between the three couches on my shortlist.",
     "context": {
       "contentType": "application/json",
-      "data": { "targets": ["NGC 6543", "M27"], "site": "…" }
+      "data": { "shortlist": ["couch-mira-3s", "couch-orla-l", "couch-pemb-3s"], "budgetCents": 600000 }
     },
-    "resultSchema": { "$ref": "https://app.stargraph.example/schemas/plan-result.json" },
-    "returnUri": "https://app.stargraph.example/sidequest/return"
+    "resultSchema": { "$ref": "https://app.snug.example/schemas/decision-result.json" },
+    "returnUri": "https://app.snug.example/sidequest/return",
+    "resume": {
+      "previousSessionId": "sq_11c0…"
+    }
   }
 }
 ```
@@ -543,6 +643,9 @@ Requirements:
   (fetched by tools), not in the URL.
 - `prompt` and `context` are **attacker-influenceable text entering a
   model** and are subject to §10.5.
+- `resume` (OPTIONAL) references an earlier sidequest from the same
+  `iss` whose conversation thread this sidequest continues; semantics
+  in §7.4.
 
 ### 7.3 Host behavior at dispatch
 
@@ -566,6 +669,37 @@ On receiving a valid envelope, the Host:
    Server (`closed`, reason `user_cancelled`) if reachable without
    auth friction, else simply not attach — the sidequest then expires
    (§6.3).
+
+### 7.4 Thread continuity: chained sidequests
+
+Related sidequests should not start over. When work naturally spans
+several handoffs — the couch decision today, the matching armchair
+next month — the history of the earlier work is part of the context of
+the later work, and it already lives in the Host's conversation
+thread. The `resume` field lets an Initiator ask for that continuity.
+
+When an envelope carries `resume.previousSessionId`, the Host:
+
+1. **SHOULD** continue the conversation thread in which the referenced
+   sidequest ran, rather than opening a fresh conversation — provided
+   *all* of the following hold: the referenced sidequest was dispatched
+   by the **same `iss`**, it ran under the **same authenticated Host
+   user**, and its thread still exists on this Host.
+2. **MUST** start a fresh conversation when any condition fails, and
+   **MUST NOT** reveal to the Initiator whether resumption occurred
+   beyond the fact of attachment (thread existence is user-private
+   information; see §10.6).
+3. **MUST** still treat the new `sessionId` as a distinct sidequest:
+   its own attach, binding, expiry, and terminal state (§6). Resumption
+   is a *presentation* behavior — the protocol state machine never
+   spans envelopes.
+4. **MUST** show at consent that the dispatch will continue an
+   existing conversation.
+
+Each sidequest in a chain reaches its own terminal state; the chain
+itself has no protocol-level state. Initiators correlate chained
+sidequests server-side via their own records of
+`previousSessionId` — nothing new crosses the wire.
 
 ---
 
@@ -591,7 +725,7 @@ On receiving a valid envelope, the Host:
    status — never result data:
 
    ```
-   https://app.stargraph.example/sidequest/return?session=sq_8f4b…&status=completed
+   https://app.snug.example/sidequest/return?session=sq_8f4b…&status=completed
    ```
 
    Results travel server-side (§6.5). URLs leak (history, logs,
@@ -675,7 +809,53 @@ beyond schema validity — `status: completed` is the model's claim, and
 Initiators presenting results to users **SHOULD** label them as
 agent-produced.
 
-### 10.6 Privacy
+### 10.6 Privacy: the assistant as privacy boundary
+
+Sidequest's relationship asymmetry (§2.1) has a privacy consequence
+that the protocol must take a position on: **the assistant may know
+far more about the user than any application should be allowed to
+see.** A furniture app benefits from the assistant knowing the user's
+budget pressures and household; it must not receive private details
+about health, relationships, or work.
+
+There are two possible permission models, and they are fundamentally
+different. In the wrong one, the application gains access to the
+user's memory. In the right one — the one Sidequest specifies — the
+user permits their **assistant to apply** relevant personal context to
+the task, and the assistant acts as the privacy boundary: it can bring
+personal understanding to bear *without exporting the raw memories
+behind it*, revealing only what the task requires.
+
+Normatively:
+
+- The Host **MUST NOT** provide the Initiator with access to the
+  user's memory, profile, or conversation history through any
+  Sidequest mechanism. No envelope field, attach response,
+  notification, or return parameter carries personal context toward
+  the app — by construction, and implementations must not extend it
+  to.
+- The app-visible surfaces are exactly: tool-call arguments and the
+  `sidequest__complete` Completion Record. Hosts **MUST** treat
+  everything the model writes there as disclosure to the Initiator,
+  and **SHOULD** apply data-minimization behavior: task-relevant
+  conclusions ("over budget", "prefers durable fabric given the dog"),
+  not the underlying memories that produced them, and no personal
+  context unrelated to the dispatched task.
+- Hosts **SHOULD** make the boundary transparent — letting the user
+  see, and where practical control, what personal context is being
+  applied to a sidequest and what is being disclosed through tool
+  calls.
+- Thread continuity (§7.4) must not become a tracking channel: Hosts
+  **MUST NOT** disclose to the Initiator whether a `resume` request
+  actually resumed a thread, and chained-sidequest correlation exists
+  only in the Initiator's own records.
+
+Continuation without boundaries becomes surveillance; with the right
+boundaries and transparency, the assistant can carry its understanding
+of the user across every application without any application ever
+holding it.
+
+General data-handling rules:
 
 - Launch context transits the Host and is retained under the Host's
   data policy; Initiators **SHOULD** send references (IDs the MCP
@@ -715,22 +895,29 @@ Acceptance requires a working prototype demonstrating the proposal:
 
 ## 13. Open Questions
 
-1. **Multi-turn sidequests:** should a sidequest survive the user
-   navigating away and returning to the same Host conversation later
-   (pause/resume), or is expiry the only long-gap answer? v1 says
-   expiry; resume is a candidate v1.1 addition.
-2. **Host→Initiator progress events:** should the Server be able to
+1. **Pause/resume of a single sidequest:** chained sidequests can
+   resume a conversation thread (§7.4), but an *individual* sidequest
+   still cannot outlive its expiry — should one survive the user
+   navigating away and coming back hours later, or is
+   expire-and-chain-a-new-one the right long-gap answer? v1 says the
+   latter.
+2. **Disclosure-control granularity:** §10.6 requires Hosts to
+   minimize and be transparent about personal context applied to a
+   sidequest; should the protocol standardize a user-facing disclosure
+   surface (e.g. a reviewable "what was shared" record per sidequest),
+   or is that purely Host UX?
+3. **Host→Initiator progress events:** should the Server be able to
    push interim progress (via its own channel) with spec-blessed
    semantics, or is that purely an Initiator implementation detail?
    Current position: out of scope (§6.5 logic applies).
-3. **Envelope transport ceiling:** is 16 KiB the right bound, and
+4. **Envelope transport ceiling:** is 16 KiB the right bound, and
    should a `contextUri` (Host fetches context from the Initiator)
    variant be normative rather than idiomatic-via-tools?
-4. **Consent fatigue:** per-`iss` remembered consent vs. per-sidequest
+5. **Consent fatigue:** per-`iss` remembered consent vs. per-sidequest
    — where is the OAuth "trusted app" line for agentic sessions?
-5. **Extension ID:** final reverse-DNS identifier, pending sponsor
+6. **Extension ID:** final reverse-DNS identifier, pending sponsor
    and Working Group (likely Agents WG) input.
-6. **Name collision:** "SideQuest" exists as a VR app-store brand in
+7. **Name collision:** "SideQuest" exists as a VR app-store brand in
    an adjacent-but-distinct market; assess trademark posture before a
    public launch of the protocol brand.
 
