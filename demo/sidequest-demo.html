@@ -1,0 +1,511 @@
+<title>Sidequest Demo — Couch Shopping</title>
+<style>
+  :root {
+    --bg: #e9ebee;
+    --ink: #23272e;
+    --muted: #5c636e;
+    --chrome: #f7f8fa;
+    --chrome-border: #d4d8de;
+    --card: #ffffff;
+    --focus: #3b6ef6;
+    /* Snug brand (fixed, both themes) */
+    --snug-bg: #f6f1e7;
+    --snug-panel: #fdfaf3;
+    --snug-ink: #2e2a22;
+    --snug-muted: #7d7466;
+    --snug-accent: #41603f;
+    --snug-accent-ink: #f2efe6;
+    --snug-heart: #a44a2a;
+    --snug-border: #e2dac9;
+    /* Assistant surface (fixed, both themes) */
+    --agent-bg: #171a21;
+    --agent-panel: #1e222b;
+    --agent-ink: #dde1ea;
+    --agent-muted: #8b93a3;
+    --agent-accent: #8f9bff;
+    --agent-bubble: #262c38;
+    --agent-border: #2d3340;
+    /* Log */
+    --log-bg: #0e1013;
+    --log-ink: #aeb6c2;
+    --log-app: #6fbf8b;
+    --log-mcp: #7fa3e8;
+    --log-sse: #d9a45b;
+    --log-host: #b48fe0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #101216; --ink: #e6e8ec; --muted: #9aa1ac; --chrome: #1a1d23; --chrome-border: #2a2e36; --card: #171a20; }
+  }
+  :root[data-theme="dark"] { --bg: #101216; --ink: #e6e8ec; --muted: #9aa1ac; --chrome: #1a1d23; --chrome-border: #2a2e36; --card: #171a20; }
+  :root[data-theme="light"] { --bg: #e9ebee; --ink: #23272e; --muted: #5c636e; --chrome: #f7f8fa; --chrome-border: #d4d8de; --card: #ffffff; }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 1.2rem;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.6rem 1.2rem; margin-bottom: 0.4rem; }
+  header h1 { font-size: 1.25rem; margin: 0; letter-spacing: -0.01em; }
+  header .sub { color: var(--muted); font-size: 0.9rem; }
+
+  .controls {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem;
+    background: var(--chrome); border: 1px solid var(--chrome-border); border-radius: 10px;
+    padding: 0.6rem 0.8rem; margin: 0.8rem 0 1rem;
+  }
+  .controls button {
+    font: 600 0.88rem/1 system-ui, sans-serif; padding: 0.55rem 1rem; border-radius: 8px;
+    border: 1px solid var(--chrome-border); background: var(--card); color: var(--ink); cursor: pointer;
+  }
+  .controls button.primary { background: var(--focus); border-color: var(--focus); color: #fff; }
+  .controls button:disabled { opacity: 0.45; cursor: default; }
+  .controls button:focus-visible, .snug-cta:focus-visible, .agent-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .step-label { font-size: 0.88rem; color: var(--muted); }
+  .step-label strong { color: var(--ink); }
+
+  .stage { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: stretch; }
+  @media (max-width: 860px) { .stage { grid-template-columns: 1fr; } }
+
+  .browser { border: 1px solid var(--chrome-border); border-radius: 12px; overflow: hidden; background: var(--chrome); display: flex; flex-direction: column; min-height: 560px; transition: box-shadow 0.4s; }
+  .browser.flash { box-shadow: 0 0 0 3px var(--focus); }
+  .tabbar { display: flex; gap: 6px; padding: 8px 10px 0; background: var(--chrome); border-bottom: 1px solid var(--chrome-border); min-height: 38px; }
+  .tab {
+    font-size: 0.78rem; padding: 6px 14px; border-radius: 8px 8px 0 0; border: 1px solid var(--chrome-border);
+    border-bottom: none; background: var(--card); color: var(--ink); white-space: nowrap; overflow: hidden; max-width: 75%;
+  }
+  .tab.ghost { color: var(--muted); border-style: dashed; background: transparent; }
+  .surface { flex: 1; overflow-y: auto; }
+
+  /* ---------- Snug (initiator) ---------- */
+  .snug { background: var(--snug-bg); color: var(--snug-ink); padding: 1.1rem 1.2rem; height: 100%; }
+  .snug h2 { font-family: Georgia, "Times New Roman", serif; font-weight: 400; font-size: 1.5rem; margin: 0; letter-spacing: 0.01em; }
+  .snug .strap { color: var(--snug-muted); font-size: 0.82rem; margin: 0.1rem 0 0.9rem; }
+  .snug-status {
+    display: none; font-size: 0.78rem; font-weight: 600; padding: 0.3rem 0.7rem; border-radius: 999px;
+    background: var(--snug-accent); color: var(--snug-accent-ink); margin-bottom: 0.8rem; width: fit-content;
+  }
+  .snug-status.live::before { content: "●"; margin-right: 0.4rem; animation: pulse 1.4s infinite; }
+  .couches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.7rem; }
+  @media (max-width: 480px) { .couches { grid-template-columns: repeat(2, 1fr); } }
+  .couch {
+    background: var(--snug-panel); border: 1px solid var(--snug-border); border-radius: 10px;
+    padding: 0.6rem; position: relative; transition: opacity 0.5s, border-color 0.3s;
+  }
+  .couch svg { width: 100%; height: auto; display: block; }
+  .couch .name { font-family: Georgia, serif; font-size: 0.95rem; margin-top: 0.3rem; }
+  .couch .price { font-size: 0.82rem; color: var(--snug-muted); font-variant-numeric: tabular-nums; }
+  .couch .heart { position: absolute; top: 8px; right: 10px; font-size: 1rem; color: var(--snug-border); transition: color 0.3s, transform 0.3s; }
+  .couch.loved .heart { color: var(--snug-heart); transform: scale(1.2); }
+  .couch.dimmed { opacity: 0.28; }
+  .couch .agent-note {
+    display: none; margin-top: 0.45rem; font-size: 0.72rem; line-height: 1.35; padding: 0.35rem 0.5rem;
+    border-radius: 6px; background: color-mix(in srgb, var(--snug-accent) 12%, var(--snug-panel));
+    color: var(--snug-ink); border: 1px dashed var(--snug-accent);
+  }
+  .couch .agent-note.on { display: block; animation: rise 0.4s ease-out; }
+  .snug-cta {
+    display: none; margin-top: 1rem; width: 100%; padding: 0.75rem; font: 600 0.95rem system-ui, sans-serif;
+    background: var(--snug-accent); color: var(--snug-accent-ink); border: none; border-radius: 9px; cursor: pointer;
+  }
+  .snug-cta.on { display: block; animation: rise 0.4s ease-out; }
+  .snug-cta.pulse { animation: pulse 1.6s infinite; }
+  .decision {
+    display: none; margin-top: 1rem; background: var(--snug-panel); border: 1.5px solid var(--snug-accent);
+    border-radius: 10px; padding: 0.9rem 1rem;
+  }
+  .decision.on { display: block; animation: sweep 0.8s ease-out; }
+  .decision h3 { font-family: Georgia, serif; font-weight: 400; margin: 0 0 0.3rem; font-size: 1.1rem; }
+  .decision p { margin: 0.2rem 0; font-size: 0.85rem; }
+  .decision .why { color: var(--snug-muted); }
+  .decision .checkout {
+    margin-top: 0.7rem; padding: 0.6rem 1.2rem; font: 600 0.88rem system-ui, sans-serif;
+    background: var(--snug-accent); color: var(--snug-accent-ink); border: none; border-radius: 8px; cursor: pointer;
+  }
+  .snug-hint { font-size: 0.8rem; color: var(--snug-muted); margin-top: 0.9rem; font-style: italic; }
+
+  /* ---------- Assistant (host) ---------- */
+  .agent { background: var(--agent-bg); color: var(--agent-ink); padding: 1rem 1.1rem; height: 100%; }
+  .agent-empty { color: var(--agent-muted); font-size: 0.86rem; text-align: center; padding: 4rem 1.5rem; }
+  .agent-empty .big { font-size: 1.6rem; display: block; margin-bottom: 0.5rem; opacity: 0.5; }
+  .consent {
+    display: none; background: var(--agent-panel); border: 1px solid var(--agent-border); border-radius: 12px;
+    padding: 1rem 1.1rem; font-size: 0.85rem;
+  }
+  .consent.on { display: block; animation: rise 0.4s ease-out; }
+  .consent h3 { margin: 0 0 0.5rem; font-size: 0.98rem; color: var(--agent-ink); }
+  .consent .row { display: flex; gap: 0.5rem; margin: 0.35rem 0; color: var(--agent-muted); }
+  .consent .row b { color: var(--agent-ink); font-weight: 600; }
+  .consent .ok { color: var(--log-app); }
+  .consent .tools span {
+    display: inline-block; background: var(--agent-bubble); border: 1px solid var(--agent-border);
+    border-radius: 6px; padding: 0.1rem 0.5rem; margin: 0.15rem 0.2rem 0 0; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.72rem;
+  }
+  .consent .thread-note { margin-top: 0.6rem; padding: 0.5rem 0.7rem; border-radius: 8px; background: var(--agent-bubble); border: 1px dashed var(--agent-accent); color: var(--agent-ink); }
+  .agent-btn {
+    margin-top: 0.8rem; padding: 0.55rem 1.3rem; font: 600 0.86rem system-ui, sans-serif;
+    background: var(--agent-accent); color: #14161b; border: none; border-radius: 8px; cursor: pointer;
+  }
+  .chat { display: none; flex-direction: column; gap: 0.55rem; }
+  .chat.on { display: flex; }
+  .msg { max-width: 88%; padding: 0.55rem 0.8rem; border-radius: 12px; font-size: 0.85rem; animation: rise 0.35s ease-out; }
+  .msg.old { opacity: 0.42; }
+  .msg.assistant { background: var(--agent-bubble); border: 1px solid var(--agent-border); align-self: flex-start; }
+  .msg.user { background: var(--agent-accent); color: #14161b; align-self: flex-end; }
+  .msg .prov {
+    display: block; font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--agent-muted); margin-bottom: 0.25rem;
+  }
+  .msg.user .prov { color: #3c4152; }
+  .toolchip {
+    align-self: flex-start; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.72rem;
+    background: transparent; border: 1px solid var(--agent-border); color: var(--agent-muted);
+    border-radius: 999px; padding: 0.25rem 0.7rem; animation: rise 0.35s ease-out;
+  }
+  .toolchip b { color: var(--log-mcp); font-weight: 600; }
+  .toolchip.terminal b { color: var(--log-app); }
+  .private {
+    align-self: flex-start; max-width: 88%; font-size: 0.78rem; border-radius: 10px; padding: 0.55rem 0.8rem;
+    background: transparent; border: 1px dashed var(--agent-accent); color: var(--agent-muted); animation: rise 0.35s ease-out;
+  }
+  .private b { color: var(--agent-ink); }
+  .private .lock { color: var(--agent-accent); }
+  .done-row { align-self: center; margin-top: 0.4rem; text-align: center; animation: rise 0.35s ease-out; }
+  .done-row .note { font-size: 0.72rem; color: var(--agent-muted); margin-top: 0.35rem; }
+
+  /* ---------- Protocol log ---------- */
+  .logwrap { margin-top: 1rem; border: 1px solid var(--chrome-border); border-radius: 12px; overflow: hidden; }
+  .logwrap .loghead { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.9rem; background: var(--chrome); font-size: 0.8rem; font-weight: 600; }
+  .loghead .legend { font-weight: 400; color: var(--muted); font-size: 0.72rem; }
+  .legend i { font-style: normal; padding-left: 0.8rem; }
+  .legend .c-app::before, .legend .c-mcp::before, .legend .c-sse::before, .legend .c-host::before { content: "■ "; }
+  .c-app::before { color: var(--log-app); } .c-mcp::before { color: var(--log-mcp); }
+  .c-sse::before { color: var(--log-sse); } .c-host::before { color: var(--log-host); }
+  .log {
+    background: var(--log-bg); color: var(--log-ink); height: 175px; overflow-y: auto; overflow-x: auto;
+    padding: 0.6rem 0.9rem; font: 0.74rem/1.65 ui-monospace, Menlo, Consolas, monospace; white-space: pre;
+  }
+  .log .l-app { color: var(--log-app); } .log .l-mcp { color: var(--log-mcp); }
+  .log .l-sse { color: var(--log-sse); } .log .l-host { color: var(--log-host); }
+  .log .sect { color: #5b6472; }
+  .foot { color: var(--muted); font-size: 0.76rem; margin-top: 0.7rem; }
+  .foot a { color: inherit; }
+
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
+  @keyframes sweep { from { background: color-mix(in srgb, var(--snug-accent) 25%, var(--snug-panel)); } to { background: var(--snug-panel); } }
+  @media (prefers-reduced-motion: reduce) {
+    .msg, .toolchip, .private, .consent.on, .snug-cta.on, .decision.on, .couch .agent-note.on, .done-row { animation: none; }
+    .snug-cta.pulse, .snug-status.live::before { animation: none; }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Sidequest — interaction model demo</h1>
+    <span class="sub">The couch decision from the spec, played out on both surfaces. Your app is the main quest.</span>
+  </header>
+
+  <div class="controls">
+    <button class="primary" id="btnNext">Next step</button>
+    <button id="btnAuto">Auto-play</button>
+    <button id="btnReset">Reset</button>
+    <span class="step-label" id="stepLabel"><strong>Ready.</strong> The user is browsing couches in Snug.</span>
+  </div>
+
+  <div class="stage">
+    <!-- Initiator -->
+    <div class="browser" id="snugBrowser">
+      <div class="tabbar"><div class="tab">🛋 Snug — Find your couch · app.snug.example</div></div>
+      <div class="surface">
+        <div class="snug">
+          <h2>Snug</h2>
+          <p class="strap">Considered furniture, made to be lived on.</p>
+          <div class="snug-status" id="snugStatus"></div>
+          <div class="couches" id="couchGrid"></div>
+          <button class="snug-cta" id="askBtn">✦ &nbsp;Ask my assistant</button>
+          <div class="decision" id="decision">
+            <h3>Your pick: the Orla</h3>
+            <p><b>$2,890</b> · L-shape · performance bouclé, oat</p>
+            <p class="why">Chosen with your assistant — under budget, pet-friendly fabric, comfort-first. Delivery to your place in 3–5 weeks.</p>
+            <button class="checkout">Continue to checkout →</button>
+          </div>
+          <p class="snug-hint" id="snugHint">Browse, compare, shortlist — this part is what apps are for.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Host -->
+    <div class="browser" id="agentBrowser">
+      <div class="tabbar" id="agentTabbar"><div class="tab ghost">no agent surface open</div></div>
+      <div class="surface">
+        <div class="agent" id="agentSurface">
+          <div class="agent-empty" id="agentEmpty">
+            <span class="big">✦</span>
+            The user's assistant of choice isn't open.<br>
+            A sidequest dispatch will open it — in a new tab, while Snug stays put.
+          </div>
+          <div class="consent" id="consent">
+            <h3>Snug wants to start a sidequest</h3>
+            <div class="row"><span class="ok">✓</span><span>Verified origin — <b>app.snug.example</b> (envelope signature checked against its published keys)</span></div>
+            <div class="row"><span>⛭</span><span>Will connect to <b>mcp.snug.example</b></span></div>
+            <div class="row tools"><span>snug_get_shortlist</span><span>snug_get_product</span><span>snug_save_decision</span><span>sidequest__complete</span></div>
+            <div class="row"><span>↩</span><span>When finished: <b>return to Snug</b> (this tab closes — no navigation)</span></div>
+            <div class="thread-note">🧵 Continues your existing conversation <b>“Couch shopping”</b> from last week — thread key matched.</div>
+            <button class="agent-btn" id="allowBtn">Allow &amp; continue</button>
+          </div>
+          <div class="chat" id="chat"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="logwrap">
+    <div class="loghead">
+      <span>Protocol events</span>
+      <span class="legend"><i class="c-app">app ↔ backend</i><i class="c-mcp">MCP (host ↔ server)</i><i class="c-sse">server channel (SSE)</i><i class="c-host">host behavior</i></span>
+    </div>
+    <div class="log" id="log" aria-live="polite"></div>
+  </div>
+
+  <p class="foot">Every event is tagged with its section in the <a href="https://github.com/Techna183/app-agent-continuation/blob/main/spec/sidequest-protocol.md">Sidequest protocol spec</a>. The two panels never talk to each other directly — everything flows through Snug's backend, which is the point.</p>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- Couch data + rendering ----------
+  const COUCHES = [
+    { id: "couch-mira-3s",  name: "Mira",      price: "$3,200", body: "#9caf88", cushion: "#b7c6a4", shortlisted: true },
+    { id: "couch-orla-l",   name: "Orla",      price: "$2,890", body: "#c8b090", cushion: "#dcc9ad", shortlisted: true, lshape: true },
+    { id: "couch-pemb-3s",  name: "Pemberton", price: "$6,400", body: "#41597a", cushion: "#5b7397", shortlisted: true },
+    { id: "couch-duno",     name: "Duno",      price: "$1,150", body: "#b0764f", cushion: "#c99872" },
+    { id: "couch-kip",      name: "Kip",       price: "$980",   body: "#8d8d94", cushion: "#ababb2" },
+    { id: "couch-farrow",   name: "Farrow",    price: "$4,100", body: "#7a5a68", cushion: "#977485" }
+  ];
+
+  function couchSVG(c) {
+    const arm2 = c.lshape ? '<rect x="88" y="30" width="24" height="26" rx="6" fill="' + c.body + '"/>' : "";
+    return '<svg viewBox="0 0 120 62" role="img" aria-label="' + c.name + ' couch">' +
+      '<rect x="12" y="10" width="96" height="24" rx="7" fill="' + c.body + '"/>' +
+      '<rect x="16" y="26" width="42" height="16" rx="4" fill="' + c.cushion + '"/>' +
+      '<rect x="61" y="26" width="42" height="16" rx="4" fill="' + c.cushion + '"/>' +
+      '<rect x="6"  y="24" width="14" height="22" rx="6" fill="' + c.body + '"/>' +
+      '<rect x="100" y="24" width="14" height="22" rx="6" fill="' + c.body + '"/>' +
+      arm2 +
+      '<rect x="10" y="42" width="100" height="8" rx="3" fill="' + c.body + '"/>' +
+      '<rect x="20" y="50" width="5" height="8" fill="#6b5d4d"/><rect x="95" y="50" width="5" height="8" fill="#6b5d4d"/>' +
+      "</svg>";
+  }
+
+  const grid = document.getElementById("couchGrid");
+  COUCHES.forEach(function (c) {
+    const el = document.createElement("div");
+    el.className = "couch"; el.id = c.id;
+    el.innerHTML = couchSVG(c) +
+      '<span class="heart" aria-hidden="true">♥</span>' +
+      '<div class="name">' + c.name + "</div>" +
+      '<div class="price">' + c.price + "</div>" +
+      '<div class="agent-note"></div>';
+    grid.appendChild(el);
+  });
+
+  // ---------- Helpers ----------
+  const $ = (id) => document.getElementById(id);
+  const log = $("log");
+  function addLog(channel, text, sect) {
+    const line = document.createElement("div");
+    line.className = "l-" + channel;
+    line.innerHTML = text + (sect ? '  <span class="sect">' + sect + "</span>" : "");
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+  }
+  function note(id, text) {
+    const n = document.querySelector("#" + id + " .agent-note");
+    n.textContent = text; n.classList.add("on");
+  }
+  function chatMsg(cls, html, prov) {
+    const m = document.createElement("div");
+    m.className = "msg " + cls;
+    m.innerHTML = (prov ? '<span class="prov">' + prov + "</span>" : "") + html;
+    $("chat").appendChild(m);
+    m.scrollIntoView({ block: "nearest" });
+    return m;
+  }
+  function toolChip(name, args, terminal) {
+    const t = document.createElement("div");
+    t.className = "toolchip" + (terminal ? " terminal" : "");
+    t.innerHTML = "⚙ <b>" + name + "</b>(" + args + ")";
+    $("chat").appendChild(t);
+    t.scrollIntoView({ block: "nearest" });
+  }
+  function status(text, live) {
+    const s = $("snugStatus");
+    s.style.display = "block";
+    s.textContent = text;
+    s.classList.toggle("live", !!live);
+  }
+
+  // ---------- Step machine ----------
+  const steps = [
+    {
+      label: "The user shortlists three couches — discovery is the app's home turf.",
+      run() {
+        COUCHES.forEach(function (c) {
+          $(c.id).classList.add(c.shortlisted ? "loved" : "dimmed");
+        });
+        $("askBtn").classList.add("on", "pulse");
+        $("snugHint").textContent = "Three finalists. The task just changed from discovery to judgment.";
+      }
+    },
+    {
+      label: "“Ask my assistant” — Snug's backend creates the sidequest.",
+      run() {
+        $("askBtn").classList.remove("pulse");
+        $("askBtn").disabled = true;
+        status("Dispatching sidequest…");
+        addLog("app", "app → backend   POST /sidequests { shortlist:[mira,orla,pemb], thread.key:\"sofa-purchase-8812\" }", "§6.1");
+        addLog("app", "backend → app   201 { sessionId:\"sq_8f4b…\", launchUrl:\"https://assistant.example/sidequest/launch?envelope=eyJhbGciOi…\" }", "§7.2");
+      }
+    },
+    {
+      label: "The agent opens in a new tab. Snug's tab stays exactly where it is.",
+      run() {
+        $("agentTabbar").innerHTML = '<div class="tab">✦ Assistant — Sidequest: Couch shopping</div>';
+        $("agentEmpty").style.display = "none";
+        $("consent").classList.add("on");
+        addLog("host", "host: envelope JWS verified against app.snug.example/.well-known/sidequest-initiator ✓  aud ✓  exp ✓  jti unseen ✓", "§7.2, §10.2");
+        addLog("host", "host: thread select — key \"sofa-purchase-8812\" matches thread from sq_11c0… (same iss, same user) → will resume", "§7.4");
+        addLog("host", "host: consent interstitial shown (origin, MCP server, tools, return: dismiss)", "§7.3");
+      }
+    },
+    {
+      label: "User consents. The host connects to Snug's MCP server and attaches.",
+      run() {
+        $("consent").classList.remove("on");
+        const chat = $("chat");
+        chat.classList.add("on");
+        chatMsg("assistant old", "Last week: we talked through your living room layout — you wanted seating for four, low profile, and Beau claims the left cushion of anything.");
+        chatMsg("user old", "Ha, true. I'll shortlist some options this weekend.");
+        chatMsg("user", "Help me decide between the three couches on my shortlist.", "From Snug · app-provided context");
+        addLog("mcp", "host → server   initialize { extensions: { io.github.techna183.sidequest: { version:\"1.0\" } } }", "§5");
+        addLog("mcp", "host → server   extensions/…/attach { sessionId:\"sq_8f4b…\", envelope:<JWS> }", "§6.1");
+        addLog("mcp", "server → host   { expiresAt, allowedTools:[snug_get_shortlist, snug_get_product, snug_save_decision, sidequest__complete] }", "§6.1");
+        status("Sidequest active — sq_8f4b…", true);
+      }
+    },
+    {
+      label: "The agent pulls the shortlist through Snug's MCP tools.",
+      run() {
+        toolChip("snug_get_shortlist", "");
+        addLog("mcp", "host → server   tools/call snug_get_shortlist  _meta:{ …/session:{ sessionId:\"sq_8f4b…\", seq:1 } }", "§6.2");
+        addLog("mcp", "server → host   3 items: mira-3s $3,200 · orla-l $2,890 · pemb-3s $6,400", "");
+        addLog("sse", "backend ⇢ app   { type:\"activity\", msg:\"assistant reviewing shortlist\" }   ← Snug tab updates live", "§6.5");
+        chatMsg("assistant", "Got your shortlist — the Mira, the Orla, and the Pemberton. Let me look at the details before I weigh in.");
+        note("couch-mira-3s", "👁 Being reviewed by your assistant…");
+        note("couch-orla-l", "👁 Being reviewed by your assistant…");
+        note("couch-pemb-3s", "👁 Being reviewed by your assistant…");
+        $("snugHint").textContent = "Snug updates in place over its own server channel — both surfaces stay in sync, side by side.";
+      }
+    },
+    {
+      label: "The agent applies what it knows about you — without sending any of it to Snug.",
+      run() {
+        toolChip("snug_get_product", "\"couch-mira-3s\"");
+        toolChip("snug_get_product", "\"couch-orla-l\"");
+        toolChip("snug_get_product", "\"couch-pemb-3s\"");
+        addLog("mcp", "host → server   tools/call snug_get_product ×3  _meta:{ …/session:{ seq:2‥4 } }", "§6.2");
+        const p = document.createElement("div");
+        p.className = "private";
+        p.innerHTML = '<span class="lock">🔒 Private context — applied, never sent to Snug</span><br>' +
+          "<b>Budget:</b> trying to cut discretionary spending &nbsp;·&nbsp; <b>Beau</b> (golden retriever) &nbsp;·&nbsp; <b>History:</b> you always pick comfort &amp; durability over trend";
+        $("chat").appendChild(p);
+        p.scrollIntoView({ block: "nearest" });
+        addLog("sse", "backend ⇢ app   { type:\"annotation\", mira:\"fabric check\", orla:\"fabric check\", pemb:\"price check\" }", "§6.5");
+        note("couch-mira-3s", "⚠ Delicate open-weave bouclé — flagged for pet households.");
+        note("couch-orla-l", "✓ Performance bouclé — claw- and clean-friendly.");
+        note("couch-pemb-3s", "⚠ $6,400 — sits above your comparison band.");
+      }
+    },
+    {
+      label: "Recommendation and decision — judgment is the assistant's home turf.",
+      run() {
+        chatMsg("assistant",
+          "My call: <b>the Orla</b>. The Pemberton is beautiful but $6,400 works against the spending goal you set in March. " +
+          "The Mira's open-weave bouclé and Beau are a bad mix. The Orla is $2,890, the performance fabric handles pets, " +
+          "and an L-shape fits how you actually use a couch — you told me comfort beats fashion every time.");
+        chatMsg("user", "Sold. Let's go with the Orla.");
+        toolChip("snug_save_decision", "{ choice:\"couch-orla-l\" }");
+        addLog("mcp", "host → server   tools/call snug_save_decision { choice:\"couch-orla-l\" }  _meta:{ seq:5 }", "§6.2");
+        addLog("sse", "backend ⇢ app   { type:\"decision-draft\", choice:\"couch-orla-l\" }", "§6.5");
+      }
+    },
+    {
+      label: "The reserved completion tool fires — the structured result lands at Snug before the user moves.",
+      run() {
+        toolChip("sidequest__complete", "{ status:\"completed\", result:{ choice:\"couch-orla-l\" } }", true);
+        addLog("mcp", "host → server   tools/call sidequest__complete { sessionId, status:\"completed\", result:{ choice:\"couch-orla-l\", reasons:[budget, pet, comfort] } }", "§6.3");
+        addLog("mcp", "server → host   ok + return affordance { label:\"Return to Snug\" }   (terminal state: completed — now immutable)", "§6.3");
+        addLog("sse", "backend ⇢ app   { type:\"terminal\", status:\"completed\", result:{ choice:\"couch-orla-l\" } }   ← decision renders in place, no reload", "§6.5");
+        $("decision").classList.add("on");
+        $("askBtn").style.display = "none";
+        status("Sidequest complete ✓");
+        $("snugHint").textContent = "The result arrived server-side — Snug was updated before the user even switched tabs.";
+        const d = document.createElement("div");
+        d.className = "done-row";
+        d.innerHTML = '<button class="agent-btn" id="doneBtn">Done — return to Snug</button><div class="note">Closes this tab. No redirect, no page reload — Snug is already up to date.</div>';
+        $("chat").appendChild(d);
+        d.scrollIntoView({ block: "nearest" });
+      }
+    },
+    {
+      label: "Dismiss, not redirect: the agent tab closes and focus lands back in Snug.",
+      run() {
+        $("agentTabbar").innerHTML = '<div class="tab ghost">tab closed — focus returned to Snug</div>';
+        $("agentSurface").querySelector(".chat").classList.remove("on");
+        $("agentEmpty").style.display = "block";
+        $("agentEmpty").innerHTML = '<span class="big">✦</span>Sidequest finished.<br>The agent surface dismissed itself — the user is back in Snug, work done, thread preserved for next time.';
+        addLog("host", "host: return.mode=dismiss → agent tab closes itself; focus falls back to the opener tab", "§8.1");
+        addLog("app",  "main quest resumes: user lands on a Snug page that already shows the decision. Checkout awaits.", "");
+        $("snugBrowser").classList.add("flash");
+        setTimeout(function () { $("snugBrowser").classList.remove("flash"); }, 1600);
+        $("snugHint").textContent = "Next month, the matching armchair can chain onto the same thread — it won't start over.";
+      }
+    }
+  ];
+
+  let idx = -1;
+  let timer = null;
+
+  function next() {
+    if (idx >= steps.length - 1) return stopAuto();
+    idx += 1;
+    steps[idx].run();
+    $("stepLabel").innerHTML = "<strong>Step " + (idx + 1) + "/" + steps.length + ".</strong> " + steps[idx].label;
+    if (idx >= steps.length - 1) { $("btnNext").disabled = true; stopAuto(); }
+  }
+  function stopAuto() {
+    if (timer) { clearInterval(timer); timer = null; }
+    $("btnAuto").textContent = "Auto-play";
+  }
+  $("btnNext").addEventListener("click", function () { stopAuto(); next(); });
+  $("btnAuto").addEventListener("click", function () {
+    if (timer) return stopAuto();
+    $("btnAuto").textContent = "Pause";
+    next();
+    timer = setInterval(next, 2400);
+  });
+  $("btnReset").addEventListener("click", function () { stopAuto(); location.reload(); });
+
+  // In-demo buttons advance the story too.
+  document.addEventListener("click", function (e) {
+    if (e.target.id === "askBtn" && idx === 0) { stopAuto(); next(); next(); }
+    if (e.target.id === "allowBtn" && idx === 2) { stopAuto(); next(); }
+  });
+
+  addLog("host", "— Sidequest demo · fictional retailer Snug · sessionIds and JWS abbreviated —", "");
+})();
+</script>
