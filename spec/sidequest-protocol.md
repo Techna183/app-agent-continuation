@@ -163,6 +163,7 @@ sequenceDiagram
     loop delegated work
         Model->>BE: tools/call (…, _meta: sidequest binding §6.2)
         BE-->>Model: structured results
+        BE-->>App: live updates over server channel (optional §6.5)
     end
     Model->>BE: tools/call sidequest__complete (§6.3)
     BE-->>App: server channel (SSE / push / poll): terminal state + result
@@ -324,6 +325,13 @@ both ends are the same party. The Server **MUST** persist the Completion Record 
 state until the Initiator retrieves it or it ages out per Initiator
 policy. Because data return is server-side, **the Initiator can resume
 work before the user physically returns.**
+
+The same channel works *during* the sidequest, not just at its end:
+since every bound tool call transits the Initiator's backend, the
+backend **MAY** push interim state to the still-open app as the agent
+works. This requires no additional protocol surface, and it means the
+app and the agent surface can run side by side and stay in sync — a
+natural mode on desktop, where the screen real estate invites it.
 
 ## 7. Profile B — Host Integration: Dispatch
 
