@@ -165,9 +165,9 @@ sequenceDiagram
         BE-->>Model: structured results
     end
     Model->>BE: tools/call sidequest__complete (§6.3)
-    BE-->>App: webhook / push / poll: terminal state
-    Host->>App: focus return via Return URI (§8)
-    Note over App: state already present when user lands
+    BE-->>App: server channel (SSE / push / poll): terminal state + result
+    Host->>App: focus return: dismiss agent surface (§8)
+    Note over App: app already updated in place when user lands
 ```
 
 The two-profile split follows from one observation: **the data path
@@ -319,8 +319,8 @@ remains REQUIRED as backstop.
 ### 6.5 Result delivery
 
 How the Initiator's backend relays the Completion Record to its own
-app (webhook, push, polling) is out of scope — both ends are the same
-party. The Server **MUST** persist the Completion Record and terminal
+app (server-sent events, WebSocket, push, polling) is out of scope —
+both ends are the same party. The Server **MUST** persist the Completion Record and terminal
 state until the Initiator retrieves it or it ages out per Initiator
 policy. Because data return is server-side, **the Initiator can resume
 work before the user physically returns.**
@@ -335,9 +335,14 @@ Adopting Hosts **MUST** accept dispatch at:
 https://<host>/sidequest/launch?envelope=<base64url(JWS)>
 ```
 
-and **SHOULD** register a platform-native entry point (Android App
-Link / iOS Universal Link) for the same path — fixing the biggest
-failure of today's `?q=` links, silent parameter loss in mobile apps.
+The envelope is transport-independent; the URL is one binding. Hosts
+**SHOULD** register the equivalent entry point on every surface they
+ship: Android App Links / iOS Universal Links for the same path (fixing
+the biggest failure of today's `?q=` links — silent parameter loss in
+mobile apps), and an OS-level scheme or IPC entry point for desktop
+assistant apps, so a web app can dispatch directly into e.g. Claude
+Desktop and a native app into an assistant app, with no browser
+detour in either direction.
 
 ### 7.2 Launch Envelope
 
@@ -365,13 +370,16 @@ A JWS (compact serialization) signed by the Initiator:
       "data": { "shortlist": ["couch-mira-3s", "couch-orla-l", "couch-pemb-3s"], "budgetCents": 600000 }
     },
     "resultSchema": { "$ref": "https://app.snug.example/schemas/decision-result.json" },
-    "returnUri": "https://app.snug.example/sidequest/return",
+    "return": {
+      "mode": "dismiss",
+      "fallbackUri": "https://app.snug.example/sidequest/return"
+    },
     "resume": { "previousSessionId": "sq_11c0…" }
   }
 }
 ```
 
-- `iss` **MUST** publish signing keys (JWKS), registered `returnUri`
+- `iss` **MUST** publish signing keys (JWKS), registered return-URI
   prefixes, and MCP server URLs at
   `<iss>/.well-known/sidequest-initiator` — OAuth client registration,
   but discovery-based.
@@ -381,14 +389,17 @@ A JWS (compact serialization) signed by the Initiator:
   larger — bigger context belongs behind the MCP server, not in a URL.
 - `prompt` and `context` are attacker-influenceable text entering a
   model (§10.5). `resume` is OPTIONAL (§7.4).
+- `return.mode` is `"dismiss"` (default — the originating context is
+  still alive and updates itself) or `"navigate"`; `fallbackUri` is
+  used only when navigation actually occurs (§8).
 
 ### 7.3 Host behavior at dispatch
 
 1. **MUST** require an authenticated user (completing login first,
    preserving the envelope).
 2. **MUST** show a consent interstitial — verified origin (`iss`), app
-   name, MCP server, requested tools, return URI — not skippable on
-   first use of a given `iss`.
+   name, MCP server, requested tools, return behavior — not skippable
+   on first use of a given `iss`.
 3. **MUST** connect to `mcp.serverUrl` (standard MCP authorization —
    Sidequest does not alter it), negotiate the extension, and attach
    (§6.1).
@@ -416,23 +427,58 @@ an existing conversation will be continued.
 
 ## 8. Profile B — Host Integration: Focus Return
 
-1. When the `sidequest__complete` response carries a `…/return`
-   structure, the Host **MUST** render a prominent return affordance
-   with the Initiator's name.
-2. The Host **MUST** validate `returnUri` against the `iss`'s
-   registered prefixes and require `https` or a platform-verified app
-   link; custom schemes (`myapp://`) **MUST NOT** be accepted unless
-   platform-attested.
-3. The Host **MAY** auto-navigate without a gesture only when the
-   platform permits it, the user previously enabled auto-return for
-   this `iss`, and the terminal state is `completed`. Otherwise the
-   return is a user tap.
-4. The return navigation carries only `sessionId` and status — never
-   result data (URLs leak; results travel server-side per §6.5):
+Sidequest presumes the originating app context is still alive — the
+tab is still open, the native app is backgrounded. Results never
+return through the front channel: they are already at the Initiator's
+backend (§6.5), and the app **SHOULD** update in place over its own
+live channel (server-sent events, WebSocket, push). Focus return is
+therefore a **dismissal of the agent surface, not a navigation** — no
+OAuth-style page round trip, no reload. The synchronization channel
+between any two surfaces is the Initiator's backend, never a
+client-to-client link.
+
+### 8.1 Dismiss mode (default)
+
+With `return.mode: "dismiss"`, on terminal state the Host **SHOULD**
+dismiss its sidequest surface, in the platform-appropriate way:
+
+- **Browser tab opened by the app:** the Host closes the tab (or
+  renders a "Done — return to Snug" affordance that closes it); focus
+  falls back to the opener tab, which has already updated itself.
+- **Desktop assistant launched from a web or native app** (e.g. Claude
+  Desktop dispatched from a browser): the Host closes or minimizes its
+  sidequest window and **MUST NOT** open a new browser window or tab —
+  the originating surface is already current via the app's server
+  channel. (Operating systems cannot reliably refocus a specific
+  browser tab; yielding focus is the correct behavior, not
+  navigating.)
+- **Mobile:** the return is the OS back gesture / app switcher; the
+  Host **SHOULD** surface a completion cue so the user knows to
+  switch back.
+
+### 8.2 Navigate mode (fallback)
+
+Navigation applies only when `return.mode: "navigate"` was requested
+or the originating context no longer exists (cold start, closed tab).
+The Host renders a return affordance to `return.fallbackUri`, subject
+to:
+
+1. Validation against the `iss`'s registered prefixes; `https` or a
+   platform-verified app link only; custom schemes (`myapp://`)
+   **MUST NOT** be accepted unless platform-attested.
+2. Auto-navigation without a user gesture only when the platform
+   permits it, the user previously enabled auto-return for this
+   `iss`, and the terminal state is `completed`.
+3. The navigation carries only `sessionId` and status — never result
+   data (URLs leak; results travel server-side per §6.5):
 
    ```
    https://app.snug.example/sidequest/return?session=sq_8f4b…&status=completed
    ```
+
+The `…/return` structure in the `sidequest__complete` response (§6.3)
+feeds whichever mode applies: label and completion cue in dismiss
+mode, the affordance target in navigate mode.
 
 ## 9. Graceful Degradation
 
@@ -453,9 +499,12 @@ prototype required for SEP acceptance (§11).
 
 ### 10.1 Return-URI validation
 
-The Host navigates to a third-party-supplied URI; all [RFC 9700]
-lessons apply: exact-prefix matching against pre-registered values,
-`https`/app-link only, no custom schemes without platform attestation.
+In navigate mode (§8.2) the Host navigates to a third-party-supplied
+URI; all [RFC 9700] lessons apply: exact-prefix matching against
+pre-registered values, `https`/app-link only, no custom schemes
+without platform attestation. Dismiss mode has no navigation and
+correspondingly less attack surface — another reason it is the
+default.
 
 ### 10.2 Envelope integrity
 
