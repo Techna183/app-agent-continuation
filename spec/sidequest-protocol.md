@@ -1,9 +1,9 @@
-# SEP-XXXX: Sidequest — The App–Agent Continuation Protocol
+# Sidequest — The App–Agent Continuation Protocol
 
 | Field | Value |
 |---|---|
 | **Title** | Sidequest: Native App ⇄ Agent Work Continuation |
-| **Track** | Extensions |
+| **Proposed track** | Extensions (SEP number assigned at submission) |
 | **Extension ID** | `io.github.techna183.sidequest` (placeholder; final ID assigned at adoption) |
 | **Status** | Draft / Pre-proposal (RFP) |
 | **Author(s)** | David Berg \<techna1@gmail.com\> |
