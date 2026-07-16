@@ -36,6 +36,53 @@ return — host behaviors adopted voluntarily). It is proposed as an
 Extensions-Track SEP: too opinionated for core, valuable as an
 interoperable pattern.
 
+## Sidequest at a Glance
+
+A furniture app (**Snug**) hands a "help me decide" moment to the
+user's assistant. The whole protocol, from the initiator's side:
+
+```js
+// 1. Snug backend creates the sidequest (context, tools, thread key)
+const sq = await api.post("/sidequests", {
+  prompt: "Help me decide between the three couches on my shortlist.",
+  context: { shortlist: ["couch-mira-3s", "couch-orla-l", "couch-pemb-3s"] },
+  thread: { key: "sofa-purchase-8812" }
+});
+// → { sessionId: "sq_8f4b…", launchUrl: "https://chatgpt.com/sidequest/launch?envelope=…" }
+
+// 2. Frontend dispatches to the user's assistant — a new tab; this one stays open
+window.open(sq.launchUrl);
+
+// 3. This page updates itself as the agent works — no redirect, no reload
+new EventSource(`/sidequests/${sq.sessionId}/events`)
+  .onmessage = (e) => render(JSON.parse(e.data)); // interim states, then terminal
+```
+
+On the agent side, the Host validates the envelope, asks the user's
+consent, connects to Snug's MCP server, and binds the conversation to
+the right thread (resuming last week's couch conversation if the
+`thread.key` matches). The model then works with Snug's ordinary MCP
+tools — the only Sidequest-specific piece the server adds is the
+reserved completion tool:
+
+```js
+// Snug MCP server — ordinary tools, plus the reserved terminal tool
+server.tool("snug_get_shortlist", async (_args, meta) => shortlist(meta.sessionId));
+
+server.tool("sidequest__complete", async ({ sessionId, status, result }) => {
+  await sessions.finalize(sessionId, status, result); // one terminal state, then immutable
+  sse.push(sessionId, { type: "terminal", status, result }); // the open Snug tab updates
+  return { structuredContent: { "…/return": { label: "Return to Snug" } } };
+});
+```
+
+When `sidequest__complete` fires, the Snug tab has already rendered
+the decision; the agent tab dismisses itself and the user is back
+where they started, work done. No Host support yet? The same server
+works today by dispatching via `chatgpt.com/?q=` with the `sessionId`
+in the prompt (§9) — only thread binding and the signed envelope wait
+on host adoption.
+
 ## 2. Motivation
 
 ### 2.1 The false dichotomy
