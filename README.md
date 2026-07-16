@@ -93,6 +93,10 @@ that must replace them.
   security considerations, and the graceful-degradation path that
   works against today's hosts with plain `?q=` deep links.
 
+## Author
+
+David Berg — techna1@gmail.com
+
 ## Status
 
 Draft / pre-proposal. Next steps per the MCP SEP process:
