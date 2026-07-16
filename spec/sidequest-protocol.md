@@ -201,6 +201,13 @@ A declaring Server **MUST** implement §6 in full. A declaring Client
 **MUST** emit §6.4 notifications if negotiated. A Server **MUST** still
 function with non-declaring clients via the degradation path (§9).
 
+> **Schema stability.** Method names, capability fields, and envelope
+> field names in §5–§7 are provisional pending Working Group and
+> sponsor input. The stable core this spec commits to is
+> architectural: a reserved completion tool, `_meta` session binding,
+> a signed launch envelope, dismiss-first focus return, and the
+> terminal-state model.
+
 ## 6. Profile A — MCP Extension (Normative)
 
 ### 6.1 Establishment
@@ -217,9 +224,14 @@ An extension-aware Host attaches after `initialize`:
   "jsonrpc": "2.0",
   "id": 7,
   "method": "extensions/io.github.techna183.sidequest/attach",
-  "params": { "sessionId": "sq_8f4b…", "envelopeSignature": "…" }
+  "params": { "sessionId": "sq_8f4b…", "envelope": "<compact JWS>" }
 }
 ```
+
+`envelope` is the full Launch Envelope as received (OPTIONAL but
+RECOMMENDED): it lets the Server verify its own signature end-to-end
+and detect a tampered or stale dispatch. Possession of an active
+`sessionId` remains the attach credential, as in the legacy path.
 
 The Server **MUST** verify the sidequest exists, is unexpired, and is
 not already attached (single-use; §10.3), then respond:
@@ -382,7 +394,7 @@ A JWS (compact serialization) signed by the Initiator:
       "mode": "dismiss",
       "fallbackUri": "https://app.snug.example/sidequest/return"
     },
-    "resume": { "previousSessionId": "sq_11c0…" }
+    "thread": { "key": "sofa-purchase-8812", "previousSessionId": "sq_11c0…" }
   }
 }
 ```
@@ -396,7 +408,7 @@ A JWS (compact serialization) signed by the Initiator:
 - `context.data`: Hosts **MUST** accept ≤ 16 KiB and **MAY** reject
   larger — bigger context belongs behind the MCP server, not in a URL.
 - `prompt` and `context` are attacker-influenceable text entering a
-  model (§10.5). `resume` is OPTIONAL (§7.4).
+  model (§10.5). `thread` is OPTIONAL (§7.4).
 - `return.mode` is `"dismiss"` (default — the originating context is
   still alive and updates itself) or `"navigate"`; `fallbackUri` is
   used only when navigation actually occurs (§8).
@@ -418,20 +430,37 @@ A JWS (compact serialization) signed by the Initiator:
    `user_cancelled`) if reachable, else simply never attach — the
    sidequest expires.
 
-### 7.4 Thread continuity: chained sidequests
+### 7.4 Thread binding: selecting the right conversation
 
 Related sidequests should not start over — the earlier work's history
-already lives in the Host's conversation thread. When an envelope
-carries `resume.previousSessionId`, the Host **SHOULD** continue the
-thread in which the referenced sidequest ran, provided it was
-dispatched by the same `iss`, ran under the same authenticated user,
-and still exists — and **MUST** start fresh otherwise. The Host
-**MUST NOT** reveal to the Initiator whether resumption occurred
-(thread existence is user-private; §10.6), **MUST** treat the new
-`sessionId` as a distinct sidequest with its own attach, binding,
-expiry, and terminal state (resumption is presentation; the state
-machine never spans envelopes), and **MUST** disclose at consent that
-an existing conversation will be continued.
+already lives in a Host conversation thread, and the Host's job at
+dispatch is to bind the sidequest to the *right* thread. The envelope's
+`thread` object provides two signals:
+
+- `key` — a stable, Initiator-chosen identifier for the ongoing body
+  of work (e.g. one per shopping project), opaque to the Host.
+- `previousSessionId` — a precise pointer to one earlier sidequest.
+
+Thread selection, in order:
+
+1. If `previousSessionId` names a sidequest whose thread the Host
+   still has, bind to that thread.
+2. Else if `key` matches the thread of the most recent prior sidequest
+   carrying the same key, bind to that thread.
+3. Else — including when `thread` is absent — start a new thread,
+   which becomes associated with the `key` for future selection.
+
+Candidate threads for steps 1–2 are only those from sidequests
+dispatched by the **same `iss`** and run under the **same
+authenticated user**; the Host **MUST** never bind across either
+boundary. The Host **MUST NOT** reveal to the Initiator which branch
+was taken (thread existence is user-private; §10.6), **MUST** treat
+the new `sessionId` as a distinct sidequest with its own attach,
+binding, expiry, and terminal state (thread binding is presentation;
+the state machine never spans envelopes), **MUST** disclose at consent
+when an existing conversation will be continued, and **SHOULD** let
+the user override the selection — continuing fresh, or picking a
+different eligible thread.
 
 ## 8. Profile B — Host Integration: Focus Return
 
@@ -562,7 +591,8 @@ behind it.
   conclusions ("over budget"), never the memories that produced them.
 - Hosts **SHOULD** make the boundary transparent — what personal
   context is applied, what is disclosed.
-- Thread continuity **MUST NOT** become a tracking channel (§7.4).
+- Thread binding **MUST NOT** become a tracking channel: neither
+  `key` matches nor thread existence are ever disclosed (§7.4).
 - Initiators **SHOULD** send references rather than raw sensitive
   data; result data **MUST NOT** appear in return URLs; `sessionId`
   **MUST NOT** encode user identifiers.
