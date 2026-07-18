@@ -67,18 +67,21 @@
   .step-label { font-size: 0.88rem; color: var(--muted); }
   .step-label strong { color: var(--ink); }
 
-  .stage { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: stretch; }
-  @media (max-width: 860px) { .stage { grid-template-columns: 1fr; } }
+  .stage { max-width: 800px; margin: 0 auto; }
 
-  .browser { border: 1px solid var(--chrome-border); border-radius: 12px; overflow: hidden; background: var(--chrome); display: flex; flex-direction: column; min-height: 560px; transition: box-shadow 0.4s; }
+  .browser { border: 1px solid var(--chrome-border); border-radius: 12px; overflow: hidden; background: var(--chrome); display: flex; flex-direction: column; height: 620px; transition: box-shadow 0.4s; }
   .browser.flash { box-shadow: 0 0 0 3px var(--focus); }
   .tabbar { display: flex; gap: 6px; padding: 8px 10px 0; background: var(--chrome); border-bottom: 1px solid var(--chrome-border); min-height: 38px; }
   .tab {
-    font-size: 0.78rem; padding: 6px 14px; border-radius: 8px 8px 0 0; border: 1px solid var(--chrome-border);
-    border-bottom: none; background: var(--card); color: var(--ink); white-space: nowrap; overflow: hidden; max-width: 75%;
+    font: inherit; font-size: 0.78rem; padding: 6px 14px; border-radius: 8px 8px 0 0; border: 1px solid var(--chrome-border);
+    border-bottom: none; background: transparent; color: var(--muted); white-space: nowrap; overflow: hidden; max-width: 60%;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
   }
-  .tab.ghost { color: var(--muted); border-style: dashed; background: transparent; }
-  .surface { flex: 1; overflow-y: auto; }
+  .tab.active { background: var(--card); color: var(--ink); }
+  .tab:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+  .tab .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--focus); animation: pulse 1.2s infinite; }
+  .surface { flex: 1; overflow-y: auto; display: none; }
+  .surface.active { display: block; }
 
   /* ---------- Snug (initiator) ---------- */
   .snug { background: var(--snug-bg); color: var(--snug-ink); padding: 1.1rem 1.2rem; height: 100%; }
@@ -247,10 +250,12 @@
   </div>
 
   <div class="stage">
-    <!-- Initiator -->
-    <div class="browser" id="snugBrowser">
-      <div class="tabbar"><div class="tab">🛋 Snug — Find your couch · app.snug.example</div></div>
-      <div class="surface">
+    <div class="browser" id="theBrowser">
+      <div class="tabbar">
+        <button class="tab active" id="tabSnug">🛋 Snug — Find your couch · app.snug.example</button>
+        <button class="tab" id="tabGpt" hidden><span class="gpt-mark" data-gpt-logo data-size="13" aria-hidden="true"></span>Couch shopping — ChatGPT · chatgpt.com</button>
+      </div>
+      <div class="surface active" id="surfSnug">
         <div class="snug">
           <h2>Snug</h2>
           <p class="strap">Considered furniture, made to be lived on.</p>
@@ -266,23 +271,14 @@
           <p class="snug-hint" id="snugHint">Browse, compare, shortlist — this part is what apps are for.</p>
         </div>
       </div>
-    </div>
 
-    <!-- Host -->
-    <div class="browser" id="agentBrowser">
-      <div class="tabbar" id="agentTabbar"><div class="tab ghost">no agent surface open</div></div>
-      <div class="surface">
-        <div class="agent" id="agentSurface">
+      <div class="surface" id="surfGpt">
+        <div class="agent open" id="agentSurface">
           <div class="agent-top">
             <span class="model"><span class="gpt-mark" data-gpt-logo data-size="18" aria-hidden="true"></span>ChatGPT&nbsp;5 <span class="caret">▾</span></span>
             <span class="icons">⇪ ⋯</span>
           </div>
           <div class="agent-scroll">
-            <div class="agent-empty" id="agentEmpty">
-              <span class="big">✦</span>
-              The user's assistant of choice isn't open.<br>
-              A sidequest dispatch will open it — in a new tab, while Snug stays put.
-            </div>
             <div class="consent" id="consent">
               <h3>Snug wants to start a sidequest</h3>
               <div class="row"><span class="ok">✓</span><span>Verified origin — <b>app.snug.example</b> (envelope signature checked against its published keys)</span></div>
@@ -311,7 +307,7 @@
     <div class="log" id="log" aria-live="polite"></div>
   </div>
 
-  <p class="foot">Every event is tagged with its section in the <a href="https://github.com/Techna183/app-agent-continuation/blob/main/spec/sidequest-protocol.md">Sidequest protocol spec</a>. The two panels never talk to each other directly — everything flows through Snug's backend, which is the point.</p>
+  <p class="foot">Every event is tagged with its section in the <a href="https://github.com/Techna183/app-agent-continuation/blob/main/spec/sidequest-protocol.md">Sidequest protocol spec</a>. The two tabs never talk to each other directly — everything flows through Snug's backend, which is the point. Click the tabs to flip between surfaces at any step.</p>
 </div>
 
 <script>
@@ -398,6 +394,23 @@
     s.textContent = text;
     s.classList.toggle("live", !!live);
   }
+  function switchTab(which) {
+    const snug = which === "snug";
+    $("tabSnug").classList.toggle("active", snug);
+    $("tabGpt").classList.toggle("active", !snug);
+    $("surfSnug").classList.toggle("active", snug);
+    $("surfGpt").classList.toggle("active", !snug);
+    if (snug) { const d = $("tabSnug").querySelector(".dot"); if (d) d.remove(); }
+  }
+  function markSnugActivity() {
+    if ($("surfSnug").classList.contains("active")) return;
+    if ($("tabSnug").querySelector(".dot")) return;
+    const d = document.createElement("span");
+    d.className = "dot";
+    $("tabSnug").appendChild(d);
+  }
+  $("tabSnug").addEventListener("click", function () { switchTab("snug"); });
+  $("tabGpt").addEventListener("click", function () { switchTab("gpt"); });
 
   // ---------- Step machine ----------
   const steps = [
@@ -422,11 +435,10 @@
       }
     },
     {
-      label: "ChatGPT opens in a new tab. Snug's tab stays exactly where it is.",
+      label: "ChatGPT opens in a new tab and takes focus. Snug's tab stays live behind it.",
       run() {
-        $("agentTabbar").innerHTML = '<div class="tab">✦ Couch shopping — ChatGPT · chatgpt.com</div>';
-        $("agentSurface").classList.add("open");
-        $("agentEmpty").style.display = "none";
+        $("tabGpt").hidden = false;
+        switchTab("gpt");
         $("consent").classList.add("on");
         addLog("host", "host: envelope JWS verified against app.snug.example/.well-known/sidequest-initiator ✓  aud ✓  exp ✓  jti unseen ✓", "§7.2, §10.2");
         addLog("host", "host: thread select — key \"sofa-purchase-8812\" matches thread from sq_11c0… (same iss, same user) → will resume", "§7.4");
@@ -449,12 +461,13 @@
       }
     },
     {
-      label: "The agent pulls the shortlist through Snug's MCP tools.",
+      label: "The agent pulls the shortlist through Snug's MCP tools. (See the dot on Snug's tab? Flip over — it's updating live.)",
       run() {
         toolChip("snug_get_shortlist", "");
         addLog("mcp", "host → server   tools/call snug_get_shortlist  _meta:{ …/session:{ sessionId:\"sq_8f4b…\", seq:1 } }", "§6.2");
         addLog("mcp", "server → host   3 items: mira-3s $3,200 · orla-l $2,890 · pemb-3s $6,400", "");
         addLog("sse", "backend ⇢ app   { type:\"activity\", msg:\"assistant reviewing shortlist\" }   ← Snug tab updates live", "§6.5");
+        markSnugActivity();
         chatMsg("assistant", "Got your shortlist — the Mira, the Orla, and the Pemberton. Let me look at the details before I weigh in.");
         note("couch-mira-3s", "👁 Being reviewed by your assistant…");
         note("couch-orla-l", "👁 Being reviewed by your assistant…");
@@ -476,6 +489,7 @@
         $("chat").appendChild(p);
         p.scrollIntoView({ block: "nearest" });
         addLog("sse", "backend ⇢ app   { type:\"annotation\", mira:\"fabric check\", orla:\"fabric check\", pemb:\"price check\" }", "§6.5");
+        markSnugActivity();
         note("couch-mira-3s", "⚠ Delicate open-weave bouclé — flagged for pet households.");
         note("couch-orla-l", "✓ Performance bouclé — claw- and clean-friendly.");
         note("couch-pemb-3s", "⚠ $6,400 — sits above your comparison band.");
@@ -492,6 +506,7 @@
         toolChip("snug_save_decision", "{ choice:\"couch-orla-l\" }");
         addLog("mcp", "host → server   tools/call snug_save_decision { choice:\"couch-orla-l\" }  _meta:{ seq:5 }", "§6.2");
         addLog("sse", "backend ⇢ app   { type:\"decision-draft\", choice:\"couch-orla-l\" }", "§6.5");
+        markSnugActivity();
       }
     },
     {
@@ -501,6 +516,7 @@
         addLog("mcp", "host → server   tools/call sidequest__complete { sessionId, status:\"completed\", result:{ choice:\"couch-orla-l\", reasons:[budget, pet, comfort] } }", "§6.3");
         addLog("mcp", "server → host   ok + return affordance { label:\"Return to Snug\" }   (terminal state: completed — now immutable)", "§6.3");
         addLog("sse", "backend ⇢ app   { type:\"terminal\", status:\"completed\", result:{ choice:\"couch-orla-l\" } }   ← decision renders in place, no reload", "§6.5");
+        markSnugActivity();
         $("decision").classList.add("on");
         $("askBtn").style.display = "none";
         status("Sidequest complete ✓");
@@ -513,18 +529,15 @@
       }
     },
     {
-      label: "Dismiss, not redirect: the agent tab closes and focus lands back in Snug.",
+      label: "Dismiss, not redirect: the ChatGPT tab closes itself and you're back in Snug.",
       run() {
-        $("agentTabbar").innerHTML = '<div class="tab ghost">tab closed — focus returned to Snug</div>';
-        $("agentSurface").classList.remove("open");
-        $("agentSurface").querySelector(".chat").classList.remove("on");
-        $("agentEmpty").style.display = "block";
-        $("agentEmpty").innerHTML = '<span class="big">✦</span>Sidequest finished.<br>The agent surface dismissed itself — the user is back in Snug, work done, thread preserved for next time.';
+        $("tabGpt").hidden = true;
+        switchTab("snug");
         addLog("host", "host: return.mode=dismiss → agent tab closes itself; focus falls back to the opener tab", "§8.1");
         addLog("app",  "main quest resumes: user lands on a Snug page that already shows the decision. Checkout awaits.", "");
-        $("snugBrowser").classList.add("flash");
-        setTimeout(function () { $("snugBrowser").classList.remove("flash"); }, 1600);
-        $("snugHint").textContent = "Next month, the matching armchair can chain onto the same thread — it won't start over.";
+        $("theBrowser").classList.add("flash");
+        setTimeout(function () { $("theBrowser").classList.remove("flash"); }, 1600);
+        $("snugHint").textContent = "Sidequest finished — work done, thread preserved. Next month, the matching armchair can chain onto the same thread.";
       }
     }
   ];
@@ -556,6 +569,7 @@
   document.addEventListener("click", function (e) {
     if (e.target.id === "askBtn" && idx === 0) { stopAuto(); next(); next(); }
     if (e.target.id === "allowBtn" && idx === 2) { stopAuto(); next(); }
+    if (e.target.id === "doneBtn" && idx === 7) { stopAuto(); next(); }
   });
 
   addLog("host", "— Sidequest demo · fictional retailer Snug · sessionIds and JWS abbreviated —", "");
