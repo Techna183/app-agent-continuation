@@ -248,8 +248,12 @@
   .done-row .note { font-size: 0.72rem; color: var(--agent-muted); margin-top: 0.35rem; }
 
   /* ---------- Protocol log ---------- */
-  .logwrap { margin-top: 1rem; border: 1px solid var(--chrome-border); border-radius: 12px; overflow: hidden; }
-  .logwrap .loghead { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.9rem; background: var(--chrome); font-size: 0.8rem; font-weight: 600; }
+  .logwrap { margin-top: 1rem; border: 1px solid var(--chrome-border); border-radius: 12px; overflow: hidden; max-width: 800px; margin-left: auto; margin-right: auto; }
+  .logwrap .loghead { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; padding: 0.5rem 0.9rem; background: var(--chrome); font-size: 0.8rem; font-weight: 600; cursor: pointer; list-style: none; }
+  .logwrap .loghead::-webkit-details-marker { display: none; }
+  .logwrap .loghead::before { content: "▸"; color: var(--muted); transition: transform 0.2s; }
+  .logwrap[open] .loghead::before { transform: rotate(90deg); }
+  .logwrap .loghead .title { margin-right: auto; }
   .loghead .legend { font-weight: 400; color: var(--muted); font-size: 0.72rem; }
   .legend i { font-style: normal; padding-left: 0.8rem; }
   .legend .c-app::before, .legend .c-mcp::before, .legend .c-sse::before, .legend .c-host::before { content: "■ "; }
@@ -356,13 +360,13 @@
     </div>
   </div>
 
-  <div class="logwrap">
-    <div class="loghead">
-      <span>Protocol events</span>
+  <details class="logwrap">
+    <summary class="loghead">
+      <span class="title">Protocol events — under the hood</span>
       <span class="legend"><i class="c-app">app ↔ backend</i><i class="c-mcp">MCP (host ↔ server)</i><i class="c-sse">server channel (SSE)</i><i class="c-host">host behavior</i></span>
-    </div>
+    </summary>
     <div class="log" id="log" aria-live="polite"></div>
-  </div>
+  </details>
 
   <p class="foot">Every event is tagged with its section in the <a href="https://github.com/Techna183/app-agent-continuation/blob/main/spec/sidequest-protocol.md">Sidequest protocol spec</a>. The two tabs never talk to each other directly — everything flows through Snug's backend, which is the point. Click the tabs to flip between surfaces at any step.</p>
 </div>
