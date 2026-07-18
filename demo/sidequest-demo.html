@@ -141,6 +141,10 @@
   .couch .heart { position: absolute; top: 8px; right: 10px; font-size: 1rem; color: var(--snug-border); transition: color 0.3s, transform 0.3s; }
   .couch.loved .heart { color: var(--snug-heart); transform: scale(1.2); }
   .couch.dimmed { opacity: 0.28; }
+  .couch.heartable { cursor: pointer; }
+  .couch.heartable:hover { border-color: var(--snug-heart); }
+  .couch.heartable:hover .heart { color: var(--snug-heart); opacity: 0.55; }
+  .couch.heartable.loved:hover .heart { opacity: 1; }
   .couch .agent-note {
     display: none; margin-top: 0.45rem; font-size: 0.72rem; line-height: 1.35; padding: 0.35rem 0.5rem;
     border-radius: 6px; background: color-mix(in srgb, var(--snug-accent) 12%, var(--snug-panel));
@@ -316,7 +320,7 @@
           </div>
           <div class="connected-chip" id="connectedChip" hidden>✓ Connected to ChatGPT</div>
           <div class="couches" id="couchGrid"></div>
-          <button class="snug-cta" id="askBtn"><span class="gpt-mark" data-gpt-logo data-size="16" aria-hidden="true"></span>&nbsp; Get input from GPT</button>
+          <button class="snug-cta" id="askBtn"><span class="gpt-mark" data-gpt-logo data-size="16" aria-hidden="true"></span>&nbsp; Discuss with GPT</button>
           <div class="decision" id="decision">
             <h3>Your pick: the Orla</h3>
             <p><b>$2,890</b> · L-shape · performance bouclé, oat</p>
@@ -541,7 +545,7 @@
       }
     },
     {
-      label: "Authorized. The connector is bound to the user's ChatGPT account — set up once, used from now on.",
+      label: "Connector bound — set up once, used from now on. Now click your three favorite sofas to heart them.",
       run() {
         $("connector").classList.remove("on");
         addLog("mcp", "server → host   authorized — scopes: snug_get_shortlist, snug_get_product, snug_save_decision", "");
@@ -552,21 +556,26 @@
         $("picker").hidden = true;
         $("connectedChip").hidden = false;
         $("couchGrid").classList.remove("predim");
-        $("snugHint").textContent = "Setup done. Now — couch shopping. Browse, compare, shortlist: this part is what apps are for.";
+        COUCHES.forEach(function (c) {
+          if (c.shortlisted) $(c.id).classList.add("heartable");
+        });
+        $("snugHint").textContent = "Browse and compare — click a sofa to heart it. Three hearts make a shortlist.";
       }
     },
     {
-      label: "The user shortlists three couches — discovery is the app's home turf.",
+      label: "Three favorites — the task just changed from discovery to judgment, so “Discuss with GPT” appears.",
       run() {
         COUCHES.forEach(function (c) {
-          $(c.id).classList.add(c.shortlisted ? "loved" : "dimmed");
+          const el = $(c.id);
+          if (c.shortlisted) { el.classList.add("loved"); el.classList.remove("heartable"); }
+          else { el.classList.add("dimmed"); }
         });
         $("askBtn").classList.add("on", "pulse");
-        $("snugHint").textContent = "Three finalists. The task just changed from discovery to judgment.";
+        $("snugHint").textContent = "Three finalists. Judgment needs someone who knows you — not just the catalog.";
       }
     },
     {
-      label: "“Get input from GPT” — straight into ChatGPT, which asks per-sidequest consent.",
+      label: "“Discuss with GPT” — straight into ChatGPT, which asks per-sidequest consent.",
       run() {
         $("askBtn").classList.remove("pulse");
         $("askBtn").disabled = true;
@@ -714,6 +723,11 @@
     if (id === "doneBtn" && idx === 10) { stopAuto(); next(); }
     const row = e.target.closest(".prow");
     if (row && row.dataset.agent === "gpt" && idx === 0) { stopAuto(); next(); }
+    const couch = e.target.closest(".couch.heartable");
+    if (couch && idx === 3) {
+      couch.classList.toggle("loved");
+      if (document.querySelectorAll(".couch.loved").length >= 3) { stopAuto(); next(); }
+    }
   });
 
   addLog("host", "— Sidequest demo · fictional retailer Snug · sessionIds and JWS abbreviated —", "");
