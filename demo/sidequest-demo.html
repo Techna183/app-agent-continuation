@@ -110,8 +110,9 @@
   .snug-cta {
     display: none; margin-top: 1rem; width: 100%; padding: 0.75rem; font: 600 0.95rem system-ui, sans-serif;
     background: var(--snug-accent); color: var(--snug-accent-ink); border: none; border-radius: 9px; cursor: pointer;
+    align-items: center; justify-content: center; gap: 0.2rem;
   }
-  .snug-cta.on { display: block; animation: rise 0.4s ease-out; }
+  .snug-cta.on { display: flex; animation: rise 0.4s ease-out; }
   .snug-cta.pulse { animation: pulse 1.6s infinite; }
   .decision {
     display: none; margin-top: 1rem; background: var(--snug-panel); border: 1.5px solid var(--snug-accent);
@@ -138,7 +139,9 @@
     padding: 0.65rem 1rem; font-size: 0.92rem; font-weight: 600;
   }
   .agent.open .agent-top { display: flex; }
-  .agent-top .model { color: var(--agent-ink); }
+  .agent-top .model { color: var(--agent-ink); display: inline-flex; align-items: center; gap: 0.45rem; }
+  .gpt-mark { display: inline-block; vertical-align: -0.2em; }
+  .gpt-mark svg { display: block; }
   .agent-top .model .caret { color: var(--agent-muted); font-size: 0.7rem; }
   .agent-top .icons { color: var(--agent-muted); font-size: 0.95rem; letter-spacing: 0.5rem; }
   .agent-scroll { flex: 1; overflow-y: auto; padding: 0.8rem 1.2rem; }
@@ -253,7 +256,7 @@
           <p class="strap">Considered furniture, made to be lived on.</p>
           <div class="snug-status" id="snugStatus"></div>
           <div class="couches" id="couchGrid"></div>
-          <button class="snug-cta" id="askBtn">✦ &nbsp;Ask my assistant</button>
+          <button class="snug-cta" id="askBtn"><span class="gpt-mark" data-gpt-logo data-size="16" aria-hidden="true"></span>&nbsp; Get input from GPT</button>
           <div class="decision" id="decision">
             <h3>Your pick: the Orla</h3>
             <p><b>$2,890</b> · L-shape · performance bouclé, oat</p>
@@ -271,7 +274,7 @@
       <div class="surface">
         <div class="agent" id="agentSurface">
           <div class="agent-top">
-            <span class="model">ChatGPT&nbsp;5 <span class="caret">▾</span></span>
+            <span class="model"><span class="gpt-mark" data-gpt-logo data-size="18" aria-hidden="true"></span>ChatGPT&nbsp;5 <span class="caret">▾</span></span>
             <span class="icons">⇪ ⋯</span>
           </div>
           <div class="agent-scroll">
@@ -339,6 +342,18 @@
       "</svg>";
   }
 
+  // OpenAI-style blossom mark, simplified: six stadium petals around the center.
+  function gptLogoSVG(size) {
+    let petals = "";
+    for (let i = 0; i < 6; i++) {
+      petals += '<rect x="10.8" y="1.6" width="2.4" height="10.8" rx="1.2" transform="rotate(' + (i * 60 + 12) + " 12 12)\"/>";
+    }
+    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="currentColor">' + petals + "</svg>";
+  }
+  document.querySelectorAll("[data-gpt-logo]").forEach(function (el) {
+    el.innerHTML = gptLogoSVG(el.dataset.size || 16);
+  });
+
   const grid = document.getElementById("couchGrid");
   COUCHES.forEach(function (c) {
     const el = document.createElement("div");
@@ -400,7 +415,7 @@
       }
     },
     {
-      label: "“Ask my assistant” — Snug's backend creates the sidequest.",
+      label: "“Get input from GPT” — Snug's backend creates the sidequest.",
       run() {
         $("askBtn").classList.remove("pulse");
         $("askBtn").disabled = true;
