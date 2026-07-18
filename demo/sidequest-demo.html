@@ -201,6 +201,14 @@
   .composer .pill .hint.typing { color: var(--agent-ink); }
   .composer .pill .hint.typing::after { content: "▍"; animation: blink 1s steps(1) infinite; }
   @keyframes blink { 50% { opacity: 0; } }
+  .composer .send {
+    display: none; width: 30px; height: 30px; border-radius: 50%; border: none;
+    background: var(--agent-accent); color: var(--agent-accent-ink);
+    font: 700 1rem/1 system-ui, sans-serif; cursor: pointer;
+    align-items: center; justify-content: center; flex: none;
+  }
+  .composer .send.ready { display: flex; animation: pulse 1.6s infinite; }
+  .composer .send:focus-visible { outline: 2px solid var(--agent-accent); outline-offset: 2px; }
   .composer .disclaimer { text-align: center; font-size: 0.66rem; color: #7a7a7a; margin-top: 0.45rem; }
   .agent-empty { color: var(--agent-muted); font-size: 0.86rem; text-align: center; padding: 4rem 1.5rem; }
   .agent-empty .big { font-size: 1.6rem; display: block; margin-bottom: 0.5rem; opacity: 0.5; }
@@ -358,7 +366,7 @@
             <div class="chat" id="chat"></div>
           </div>
           <div class="composer">
-            <div class="pill"><span class="icon">⊕</span><span class="hint">Message ChatGPT</span><span class="icon">🎙</span></div>
+            <div class="pill"><span class="icon">⊕</span><span class="hint">Message ChatGPT</span><span class="icon" id="micIcon">🎙</span><button class="send" id="sendBtn" aria-label="Send message">↑</button></div>
             <div class="disclaimer">Simulated ChatGPT-style interface — protocol demo only, not affiliated with OpenAI.</div>
           </div>
         </div>
@@ -460,23 +468,31 @@
     return m;
   }
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let pendingSend = null;
   function typeUserMessage(text, done) {
     const hint = document.querySelector(".composer .hint");
-    if (reducedMotion) { chatMsg("user", text); if (done) done(); return; }
+    const send = $("sendBtn");
+    function armSend() {
+      pendingSend = function () {
+        pendingSend = null;
+        send.classList.remove("ready");
+        $("micIcon").hidden = false;
+        hint.classList.remove("typing");
+        hint.textContent = "Message ChatGPT";
+        chatMsg("user", text);
+        if (done) done();
+      };
+      $("micIcon").hidden = true;
+      send.classList.add("ready");
+      if (timer) setTimeout(function () { if (pendingSend) pendingSend(); }, 800);
+    }
     hint.classList.add("typing");
+    if (reducedMotion) { hint.textContent = text; armSend(); return; }
     let i = 0;
     const iv = setInterval(function () {
       i += 1;
       hint.textContent = text.slice(0, i);
-      if (i >= text.length) {
-        clearInterval(iv);
-        setTimeout(function () {
-          hint.classList.remove("typing");
-          hint.textContent = "Message ChatGPT";
-          chatMsg("user", text);
-          if (done) done();
-        }, 400);
-      }
+      if (i >= text.length) { clearInterval(iv); armSend(); }
     }, 26);
   }
   function toolChip(name, args, terminal) {
@@ -641,7 +657,7 @@
       }
     },
     {
-      label: "Recommendation and decision — judgment is the assistant's home turf.",
+      label: "Recommendation — the reply is typed into the composer. Press ↑ to send it.",
       run() {
         chatMsg("assistant",
           "My call: <b>the Orla</b>. The Pemberton is beautiful but $6,400 works against the spending goal you set in March. " +
@@ -692,6 +708,7 @@
   let timer = null;
 
   function next() {
+    if (pendingSend) pendingSend();
     if (idx >= steps.length - 1) return stopAuto();
     idx += 1;
     steps[idx].run();
@@ -715,6 +732,7 @@
   document.addEventListener("click", function (e) {
     const btn = e.target.closest("button");
     const id = btn ? btn.id : "";
+    if (id === "sendBtn" && pendingSend) { pendingSend(); return; }
     if (id === "ctaBtn" && idx === -1) { stopAuto(); next(); }
     if (id === "connectBtn" && idx === 1) { stopAuto(); next(); }
     if (id === "authBtn" && idx === 2) { stopAuto(); next(); }
