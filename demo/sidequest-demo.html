@@ -113,7 +113,9 @@
     display: flex; align-items: center; gap: 0.6rem; padding: 0.45rem 0.55rem;
     border: 1px solid var(--snug-border); border-radius: 8px; margin: 0.35rem 0;
     font-size: 0.88rem; transition: opacity 0.4s, border-color 0.3s, background 0.3s;
+    cursor: pointer;
   }
+  .prow:hover:not(.dim):not(.sel) { border-color: var(--snug-accent); }
   .prow .pglyph { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; }
   .prow .pname { flex: 1; }
   .prow .pradio { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--snug-border); }
@@ -507,7 +509,7 @@
   // ---------- Step machine ----------
   const steps = [
     {
-      label: "The user taps the call to action — the assistant selector opens. Shopping worked fine without it; Sidequest is opt-in.",
+      label: "The user taps the call to action — the assistant selector opens. Click ChatGPT to choose it.",
       run() {
         $("ctaBtn").hidden = true;
         $("picker").hidden = false;
@@ -564,18 +566,12 @@
       }
     },
     {
-      label: "“Get input from GPT” — Snug's backend creates the sidequest.",
+      label: "“Get input from GPT” — straight into ChatGPT, which asks per-sidequest consent.",
       run() {
         $("askBtn").classList.remove("pulse");
         $("askBtn").disabled = true;
-        status("Dispatching sidequest…");
         addLog("app", "app → backend   POST /sidequests { shortlist:[mira,orla,pemb], thread.key:\"sofa-purchase-8812\" }", "§6.1");
         addLog("app", "backend → app   201 { sessionId:\"sq_8f4b…\", launchUrl:\"https://chatgpt.com/sidequest/launch?envelope=eyJhbGciOi…\" }", "§7.2");
-      }
-    },
-    {
-      label: "ChatGPT opens in a new tab and takes focus — per-sidequest consent, on top of the one-time connector.",
-      run() {
         $("tabGptLabel").textContent = "Couch shopping — ChatGPT · chatgpt.com";
         $("tabGpt").hidden = false;
         switchTab("gpt");
@@ -713,9 +709,11 @@
     if (id === "ctaBtn" && idx === -1) { stopAuto(); next(); }
     if (id === "connectBtn" && idx === 1) { stopAuto(); next(); }
     if (id === "authBtn" && idx === 2) { stopAuto(); next(); }
-    if (id === "askBtn" && idx === 4) { stopAuto(); next(); next(); }
-    if (id === "allowBtn" && idx === 6) { stopAuto(); next(); }
-    if (id === "doneBtn" && idx === 11) { stopAuto(); next(); }
+    if (id === "askBtn" && idx === 4) { stopAuto(); next(); }
+    if (id === "allowBtn" && idx === 5) { stopAuto(); next(); }
+    if (id === "doneBtn" && idx === 10) { stopAuto(); next(); }
+    const row = e.target.closest(".prow");
+    if (row && row.dataset.agent === "gpt" && idx === 0) { stopAuto(); next(); }
   });
 
   addLog("host", "— Sidequest demo · fictional retailer Snug · sessionIds and JWS abbreviated —", "");
