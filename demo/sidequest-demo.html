@@ -93,6 +93,16 @@
     background: var(--snug-accent); color: var(--snug-accent-ink); margin-bottom: 0.8rem; width: fit-content;
   }
   .snug-status.live::before { content: "●"; margin-right: 0.4rem; animation: pulse 1.4s infinite; }
+  .cta-banner {
+    display: flex; align-items: center; gap: 0.55rem; width: 100%; text-align: left;
+    background: color-mix(in srgb, var(--snug-accent) 10%, var(--snug-panel));
+    border: 1.5px dashed var(--snug-accent); color: var(--snug-ink);
+    border-radius: 10px; padding: 0.7rem 0.95rem; font: 600 0.9rem system-ui, sans-serif;
+    cursor: pointer; margin-bottom: 0.9rem;
+  }
+  .cta-banner .spark { color: var(--snug-accent); }
+  .cta-banner .arrow { margin-left: auto; color: var(--snug-accent); }
+  .cta-banner.pulse { animation: pulse 1.8s infinite; }
   .picker {
     background: var(--snug-panel); border: 1px solid var(--snug-border); border-radius: 10px;
     padding: 0.85rem 0.95rem; margin-bottom: 0.9rem;
@@ -274,7 +284,7 @@
     <button class="primary" id="btnNext">Next step</button>
     <button id="btnAuto">Auto-play</button>
     <button id="btnReset">Reset</button>
-    <span class="step-label" id="stepLabel"><strong>Ready.</strong> First run — Snug asks which assistant should receive its sidequests.</span>
+    <span class="step-label" id="stepLabel"><strong>Ready.</strong> The user is browsing Snug. A call to action offers to configure an assistant.</span>
   </div>
 
   <div class="stage">
@@ -288,7 +298,8 @@
           <h2>Snug</h2>
           <p class="strap">Considered furniture, made to be lived on.</p>
           <div class="snug-status" id="snugStatus"></div>
-          <div class="picker" id="picker">
+          <button class="cta-banner pulse" id="ctaBtn"><span class="spark">✦</span> Configure your assistant to help you shop <span class="arrow">→</span></button>
+          <div class="picker" id="picker" hidden>
             <div class="picker-title">Choose your assistant</div>
             <p class="picker-sub">Snug hands agentic moments to the assistant you already use and trust — your choice, not ours.</p>
             <div class="prow" data-agent="gpt"><span class="pglyph"></span><span class="pname">ChatGPT</span><span class="pradio"></span></div>
@@ -298,7 +309,7 @@
             <button class="snug-cta" id="connectBtn" hidden><span class="gpt-mark" data-gpt-logo data-size="16" aria-hidden="true"></span>&nbsp; Connect ChatGPT</button>
           </div>
           <div class="connected-chip" id="connectedChip" hidden>✓ Connected to ChatGPT</div>
-          <div class="couches predim" id="couchGrid"></div>
+          <div class="couches" id="couchGrid"></div>
           <button class="snug-cta" id="askBtn"><span class="gpt-mark" data-gpt-logo data-size="16" aria-hidden="true"></span>&nbsp; Get input from GPT</button>
           <div class="decision" id="decision">
             <h3>Your pick: the Orla</h3>
@@ -306,7 +317,7 @@
             <p class="why">Chosen with your assistant — under budget, pet-friendly fabric, comfort-first. Delivery to your place in 3–5 weeks.</p>
             <button class="checkout">Continue to checkout →</button>
           </div>
-          <p class="snug-hint" id="snugHint">Snug supports Sidequest — connect your assistant to unlock agent handoffs.</p>
+          <p class="snug-hint" id="snugHint">Browse and shop as usual — or configure an assistant to unlock agent handoffs.</p>
         </div>
       </div>
 
@@ -492,7 +503,16 @@
   // ---------- Step machine ----------
   const steps = [
     {
-      label: "First run: the user picks their assistant of choice — Sidequest is assistant-agnostic.",
+      label: "The user taps the call to action — the assistant selector opens. Shopping worked fine without it; Sidequest is opt-in.",
+      run() {
+        $("ctaBtn").hidden = true;
+        $("picker").hidden = false;
+        $("couchGrid").classList.add("predim");
+        addLog("app", "app: user opened assistant setup from the in-app call to action", "");
+      }
+    },
+    {
+      label: "The user picks their assistant of choice — Sidequest is assistant-agnostic.",
       run() {
         document.querySelector('.prow[data-agent="gpt"]').classList.add("sel");
         ["copilot", "gemini", "claude"].forEach(function (a) {
@@ -686,11 +706,12 @@
   document.addEventListener("click", function (e) {
     const btn = e.target.closest("button");
     const id = btn ? btn.id : "";
-    if (id === "connectBtn" && idx === 0) { stopAuto(); next(); }
-    if (id === "authBtn" && idx === 1) { stopAuto(); next(); }
-    if (id === "askBtn" && idx === 3) { stopAuto(); next(); next(); }
-    if (id === "allowBtn" && idx === 5) { stopAuto(); next(); }
-    if (id === "doneBtn" && idx === 10) { stopAuto(); next(); }
+    if (id === "ctaBtn" && idx === -1) { stopAuto(); next(); }
+    if (id === "connectBtn" && idx === 1) { stopAuto(); next(); }
+    if (id === "authBtn" && idx === 2) { stopAuto(); next(); }
+    if (id === "askBtn" && idx === 4) { stopAuto(); next(); next(); }
+    if (id === "allowBtn" && idx === 6) { stopAuto(); next(); }
+    if (id === "doneBtn" && idx === 11) { stopAuto(); next(); }
   });
 
   addLog("host", "— Sidequest demo · fictional retailer Snug · sessionIds and JWS abbreviated —", "");
