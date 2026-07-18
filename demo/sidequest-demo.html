@@ -41,6 +41,7 @@
   :root[data-theme="light"] { --bg: #e9ebee; --ink: #23272e; --muted: #5c636e; --chrome: #f7f8fa; --chrome-border: #d4d8de; --card: #ffffff; }
 
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   body {
     margin: 0; background: var(--bg); color: var(--ink);
     font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -92,6 +93,30 @@
     background: var(--snug-accent); color: var(--snug-accent-ink); margin-bottom: 0.8rem; width: fit-content;
   }
   .snug-status.live::before { content: "●"; margin-right: 0.4rem; animation: pulse 1.4s infinite; }
+  .picker {
+    background: var(--snug-panel); border: 1px solid var(--snug-border); border-radius: 10px;
+    padding: 0.85rem 0.95rem; margin-bottom: 0.9rem;
+  }
+  .picker-title { font-family: Georgia, serif; font-size: 1.08rem; }
+  .picker-sub { font-size: 0.78rem; color: var(--snug-muted); margin: 0.15rem 0 0.6rem; }
+  .prow {
+    display: flex; align-items: center; gap: 0.6rem; padding: 0.45rem 0.55rem;
+    border: 1px solid var(--snug-border); border-radius: 8px; margin: 0.35rem 0;
+    font-size: 0.88rem; transition: opacity 0.4s, border-color 0.3s, background 0.3s;
+  }
+  .prow .pglyph { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; }
+  .prow .pname { flex: 1; }
+  .prow .pradio { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--snug-border); }
+  .prow.sel { border-color: var(--snug-accent); background: color-mix(in srgb, var(--snug-accent) 8%, var(--snug-panel)); }
+  .prow.sel .pradio { border-color: var(--snug-accent); background: var(--snug-accent); box-shadow: inset 0 0 0 2.5px var(--snug-panel); }
+  .prow.dim { opacity: 0.35; }
+  .picker .snug-cta { margin-top: 0.6rem; }
+  .connected-chip {
+    display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; font-weight: 600;
+    color: var(--snug-accent); border: 1.5px solid var(--snug-accent); border-radius: 999px;
+    padding: 0.25rem 0.75rem; margin-bottom: 0.8rem; background: var(--snug-panel);
+  }
+  .predim { opacity: 0.3; pointer-events: none; transition: opacity 0.5s; }
   .couches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.7rem; }
   @media (max-width: 480px) { .couches { grid-template-columns: repeat(2, 1fr); } }
   .couch {
@@ -249,21 +274,31 @@
     <button class="primary" id="btnNext">Next step</button>
     <button id="btnAuto">Auto-play</button>
     <button id="btnReset">Reset</button>
-    <span class="step-label" id="stepLabel"><strong>Ready.</strong> The user is browsing couches in Snug.</span>
+    <span class="step-label" id="stepLabel"><strong>Ready.</strong> First run — Snug asks which assistant should receive its sidequests.</span>
   </div>
 
   <div class="stage">
     <div class="browser" id="theBrowser">
       <div class="tabbar">
         <button class="tab active" id="tabSnug">🛋 Snug — Find your couch · app.snug.example</button>
-        <button class="tab" id="tabGpt" hidden><span class="gpt-mark" data-gpt-logo data-size="13" aria-hidden="true"></span>Couch shopping — ChatGPT · chatgpt.com</button>
+        <button class="tab" id="tabGpt" hidden><span class="gpt-mark" data-gpt-logo data-size="13" aria-hidden="true"></span><span id="tabGptLabel">ChatGPT · chatgpt.com</span></button>
       </div>
       <div class="surface active" id="surfSnug">
         <div class="snug">
           <h2>Snug</h2>
           <p class="strap">Considered furniture, made to be lived on.</p>
           <div class="snug-status" id="snugStatus"></div>
-          <div class="couches" id="couchGrid"></div>
+          <div class="picker" id="picker">
+            <div class="picker-title">Choose your assistant</div>
+            <p class="picker-sub">Snug hands agentic moments to the assistant you already use and trust — your choice, not ours.</p>
+            <div class="prow" data-agent="gpt"><span class="pglyph"></span><span class="pname">ChatGPT</span><span class="pradio"></span></div>
+            <div class="prow" data-agent="copilot"><span class="pglyph"></span><span class="pname">Copilot</span><span class="pradio"></span></div>
+            <div class="prow" data-agent="gemini"><span class="pglyph"></span><span class="pname">Gemini</span><span class="pradio"></span></div>
+            <div class="prow" data-agent="claude"><span class="pglyph"></span><span class="pname">Claude</span><span class="pradio"></span></div>
+            <button class="snug-cta" id="connectBtn" hidden><span class="gpt-mark" data-gpt-logo data-size="16" aria-hidden="true"></span>&nbsp; Connect ChatGPT</button>
+          </div>
+          <div class="connected-chip" id="connectedChip" hidden>✓ Connected to ChatGPT</div>
+          <div class="couches predim" id="couchGrid"></div>
           <button class="snug-cta" id="askBtn"><span class="gpt-mark" data-gpt-logo data-size="16" aria-hidden="true"></span>&nbsp; Get input from GPT</button>
           <div class="decision" id="decision">
             <h3>Your pick: the Orla</h3>
@@ -271,7 +306,7 @@
             <p class="why">Chosen with your assistant — under budget, pet-friendly fabric, comfort-first. Delivery to your place in 3–5 weeks.</p>
             <button class="checkout">Continue to checkout →</button>
           </div>
-          <p class="snug-hint" id="snugHint">Browse, compare, shortlist — this part is what apps are for.</p>
+          <p class="snug-hint" id="snugHint">Snug supports Sidequest — connect your assistant to unlock agent handoffs.</p>
         </div>
       </div>
 
@@ -282,6 +317,14 @@
             <span class="icons">⇪ ⋯</span>
           </div>
           <div class="agent-scroll">
+            <div class="consent" id="connector">
+              <h3>Connect Snug?</h3>
+              <div class="row"><span class="ok">✓</span><span>Verified origin — <b>app.snug.example</b> (discovered via its published connector metadata)</span></div>
+              <div class="row"><span>⛭</span><span>MCP server: <b>mcp.snug.example</b></span></div>
+              <div class="row tools"><span>snug_get_shortlist</span><span>snug_get_product</span><span>snug_save_decision</span></div>
+              <div class="row"><span>🔑</span><span>You'll sign in to Snug to authorize — Snug controls what this connector may read, change, or create.</span></div>
+              <button class="agent-btn" id="authBtn">Sign in &amp; authorize</button>
+            </div>
             <div class="consent" id="consent">
               <h3>Snug wants to start a sidequest</h3>
               <div class="row"><span class="ok">✓</span><span>Verified origin — <b>app.snug.example</b> (envelope signature checked against its published keys)</span></div>
@@ -348,6 +391,17 @@
   }
   document.querySelectorAll("[data-gpt-logo]").forEach(function (el) {
     el.innerHTML = gptLogoSVG(el.dataset.size || 16);
+  });
+
+  // Simplified assistant marks for the picker (illustrative, not official assets).
+  const AGENT_GLYPHS = {
+    gpt: '<span style="color:#1a1a1a">' + gptLogoSVG(18) + "</span>",
+    copilot: '<svg width="18" height="18" viewBox="0 0 24 24"><defs><linearGradient id="cpg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b6cff"/><stop offset="1" stop-color="#00b7c3"/></linearGradient></defs><rect x="2" y="2" width="20" height="20" rx="6" fill="url(#cpg)"/><text x="12" y="16.2" text-anchor="middle" font-size="11" font-family="system-ui" fill="#fff">∞</text></svg>',
+    gemini: '<svg width="18" height="18" viewBox="0 0 24 24"><defs><linearGradient id="gmg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4285f4"/><stop offset="1" stop-color="#9b72cb"/></linearGradient></defs><path fill="url(#gmg)" d="M12 2c.9 5.6 4.4 9.1 10 10-5.6.9-9.1 4.4-10 10-.9-5.6-4.4-9.1-10-10 5.6-.9 9.1-4.4 10-10z"/></svg>',
+    claude: '<svg width="18" height="18" viewBox="0 0 24 24" fill="#d97757"><rect x="10.9" y="2" width="2.2" height="20" rx="1.1"/><rect x="10.9" y="2" width="2.2" height="20" rx="1.1" transform="rotate(45 12 12)"/><rect x="10.9" y="2" width="2.2" height="20" rx="1.1" transform="rotate(90 12 12)"/><rect x="10.9" y="2" width="2.2" height="20" rx="1.1" transform="rotate(135 12 12)"/></svg>'
+  };
+  document.querySelectorAll(".prow").forEach(function (r) {
+    r.querySelector(".pglyph").innerHTML = AGENT_GLYPHS[r.dataset.agent];
   });
 
   const grid = document.getElementById("couchGrid");
@@ -438,6 +492,44 @@
   // ---------- Step machine ----------
   const steps = [
     {
+      label: "First run: the user picks their assistant of choice — Sidequest is assistant-agnostic.",
+      run() {
+        document.querySelector('.prow[data-agent="gpt"]').classList.add("sel");
+        ["copilot", "gemini", "claude"].forEach(function (a) {
+          document.querySelector('.prow[data-agent="' + a + '"]').classList.add("dim");
+        });
+        $("connectBtn").hidden = false;
+        $("connectBtn").classList.add("on", "pulse");
+        addLog("app", "app: assistant preference set — ChatGPT. Any Sidequest-capable host works here.", "");
+      }
+    },
+    {
+      label: "One-time connector binding: ChatGPT discovers Snug's MCP server and asks the user to authorize.",
+      run() {
+        $("tabGptLabel").textContent = "Connect Snug — ChatGPT · chatgpt.com";
+        $("tabGpt").hidden = false;
+        switchTab("gpt");
+        $("connector").classList.add("on");
+        addLog("host", "host: fetched app.snug.example/.well-known/sidequest-initiator — signing keys, MCP server URL, return prefixes", "§7.2");
+        addLog("mcp", "host → server   MCP authorization (OAuth 2.1) — user signs in to Snug and grants tool scopes", "§7.3");
+      }
+    },
+    {
+      label: "Authorized. The connector is bound to the user's ChatGPT account — set up once, used from now on.",
+      run() {
+        $("connector").classList.remove("on");
+        addLog("mcp", "server → host   authorized — scopes: snug_get_shortlist, snug_get_product, snug_save_decision", "");
+        addLog("host", "host: connector bound — Snug's tools are now available in this user's ChatGPT", "");
+        addLog("app", "backend → app   connector status: linked ✓", "");
+        $("tabGpt").hidden = true;
+        switchTab("snug");
+        $("picker").hidden = true;
+        $("connectedChip").hidden = false;
+        $("couchGrid").classList.remove("predim");
+        $("snugHint").textContent = "Setup done. Now — couch shopping. Browse, compare, shortlist: this part is what apps are for.";
+      }
+    },
+    {
       label: "The user shortlists three couches — discovery is the app's home turf.",
       run() {
         COUCHES.forEach(function (c) {
@@ -458,8 +550,9 @@
       }
     },
     {
-      label: "ChatGPT opens in a new tab and takes focus. Snug's tab stays live behind it.",
+      label: "ChatGPT opens in a new tab and takes focus — per-sidequest consent, on top of the one-time connector.",
       run() {
+        $("tabGptLabel").textContent = "Couch shopping — ChatGPT · chatgpt.com";
         $("tabGpt").hidden = false;
         switchTab("gpt");
         $("consent").classList.add("on");
@@ -591,9 +684,13 @@
 
   // In-demo buttons advance the story too.
   document.addEventListener("click", function (e) {
-    if (e.target.id === "askBtn" && idx === 0) { stopAuto(); next(); next(); }
-    if (e.target.id === "allowBtn" && idx === 2) { stopAuto(); next(); }
-    if (e.target.id === "doneBtn" && idx === 7) { stopAuto(); next(); }
+    const btn = e.target.closest("button");
+    const id = btn ? btn.id : "";
+    if (id === "connectBtn" && idx === 0) { stopAuto(); next(); }
+    if (id === "authBtn" && idx === 1) { stopAuto(); next(); }
+    if (id === "askBtn" && idx === 3) { stopAuto(); next(); next(); }
+    if (id === "allowBtn" && idx === 5) { stopAuto(); next(); }
+    if (id === "doneBtn" && idx === 10) { stopAuto(); next(); }
   });
 
   addLog("host", "— Sidequest demo · fictional retailer Snug · sessionIds and JWS abbreviated —", "");
