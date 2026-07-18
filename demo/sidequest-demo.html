@@ -17,14 +17,15 @@
     --snug-accent-ink: #f2efe6;
     --snug-heart: #a44a2a;
     --snug-border: #e2dac9;
-    /* Assistant surface (fixed, both themes) */
-    --agent-bg: #171a21;
-    --agent-panel: #1e222b;
-    --agent-ink: #dde1ea;
-    --agent-muted: #8b93a3;
-    --agent-accent: #8f9bff;
-    --agent-bubble: #262c38;
-    --agent-border: #2d3340;
+    /* Assistant surface — styled after ChatGPT dark, for demo purposes (fixed, both themes) */
+    --agent-bg: #212121;
+    --agent-panel: #2f2f2f;
+    --agent-ink: #ececec;
+    --agent-muted: #a6a6a6;
+    --agent-accent: #ffffff;
+    --agent-accent-ink: #0d0d0d;
+    --agent-bubble: #303030;
+    --agent-border: #424242;
     /* Log */
     --log-bg: #0e1013;
     --log-ink: #aeb6c2;
@@ -126,13 +127,36 @@
   }
   .snug-hint { font-size: 0.8rem; color: var(--snug-muted); margin-top: 0.9rem; font-style: italic; }
 
-  /* ---------- Assistant (host) ---------- */
-  .agent { background: var(--agent-bg); color: var(--agent-ink); padding: 1rem 1.1rem; height: 100%; }
+  /* ---------- Assistant (host) — ChatGPT-style, simulated ---------- */
+  .agent {
+    background: var(--agent-bg); color: var(--agent-ink); height: 100%;
+    display: flex; flex-direction: column;
+    font-family: "Helvetica Neue", Helvetica, system-ui, Arial, sans-serif;
+  }
+  .agent-top {
+    display: none; align-items: center; justify-content: space-between;
+    padding: 0.65rem 1rem; font-size: 0.92rem; font-weight: 600;
+  }
+  .agent.open .agent-top { display: flex; }
+  .agent-top .model { color: var(--agent-ink); }
+  .agent-top .model .caret { color: var(--agent-muted); font-size: 0.7rem; }
+  .agent-top .icons { color: var(--agent-muted); font-size: 0.95rem; letter-spacing: 0.5rem; }
+  .agent-scroll { flex: 1; overflow-y: auto; padding: 0.8rem 1.2rem; }
+  .composer { display: none; padding: 0.4rem 1rem 0.75rem; }
+  .agent.open .composer { display: block; }
+  .composer .pill {
+    display: flex; align-items: center; gap: 0.7rem;
+    background: var(--agent-bubble); border: 1px solid var(--agent-border);
+    border-radius: 999px; padding: 0.65rem 1.1rem; color: var(--agent-muted); font-size: 0.88rem;
+  }
+  .composer .pill .icon { font-size: 1rem; }
+  .composer .pill .hint { flex: 1; }
+  .composer .disclaimer { text-align: center; font-size: 0.66rem; color: #7a7a7a; margin-top: 0.45rem; }
   .agent-empty { color: var(--agent-muted); font-size: 0.86rem; text-align: center; padding: 4rem 1.5rem; }
   .agent-empty .big { font-size: 1.6rem; display: block; margin-bottom: 0.5rem; opacity: 0.5; }
   .consent {
-    display: none; background: var(--agent-panel); border: 1px solid var(--agent-border); border-radius: 12px;
-    padding: 1rem 1.1rem; font-size: 0.85rem;
+    display: none; background: var(--agent-panel); border: 1px solid var(--agent-border); border-radius: 16px;
+    padding: 1.1rem 1.2rem; font-size: 0.85rem; max-width: 30rem; margin: 1.5rem auto 0;
   }
   .consent.on { display: block; animation: rise 0.4s ease-out; }
   .consent h3 { margin: 0 0 0.5rem; font-size: 0.98rem; color: var(--agent-ink); }
@@ -143,35 +167,39 @@
     display: inline-block; background: var(--agent-bubble); border: 1px solid var(--agent-border);
     border-radius: 6px; padding: 0.1rem 0.5rem; margin: 0.15rem 0.2rem 0 0; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.72rem;
   }
-  .consent .thread-note { margin-top: 0.6rem; padding: 0.5rem 0.7rem; border-radius: 8px; background: var(--agent-bubble); border: 1px dashed var(--agent-accent); color: var(--agent-ink); }
+  .consent .thread-note { margin-top: 0.6rem; padding: 0.5rem 0.7rem; border-radius: 10px; background: var(--agent-bubble); border: 1px dashed var(--agent-muted); color: var(--agent-ink); }
   .agent-btn {
-    margin-top: 0.8rem; padding: 0.55rem 1.3rem; font: 600 0.86rem system-ui, sans-serif;
-    background: var(--agent-accent); color: #14161b; border: none; border-radius: 8px; cursor: pointer;
+    margin-top: 0.8rem; padding: 0.55rem 1.3rem; font: 600 0.86rem inherit;
+    font-family: inherit;
+    background: var(--agent-accent); color: var(--agent-accent-ink); border: none; border-radius: 999px; cursor: pointer;
   }
-  .chat { display: none; flex-direction: column; gap: 0.55rem; }
+  .chat { display: none; flex-direction: column; gap: 0.8rem; max-width: 34rem; margin: 0 auto; }
   .chat.on { display: flex; }
-  .msg { max-width: 88%; padding: 0.55rem 0.8rem; border-radius: 12px; font-size: 0.85rem; animation: rise 0.35s ease-out; }
+  .msg { font-size: 0.88rem; line-height: 1.55; animation: rise 0.35s ease-out; }
   .msg.old { opacity: 0.42; }
-  .msg.assistant { background: var(--agent-bubble); border: 1px solid var(--agent-border); align-self: flex-start; }
-  .msg.user { background: var(--agent-accent); color: #14161b; align-self: flex-end; }
+  .msg.assistant { color: var(--agent-ink); align-self: stretch; }
+  .msg.user {
+    background: var(--agent-bubble); color: var(--agent-ink); align-self: flex-end;
+    max-width: 82%; padding: 0.55rem 0.95rem; border-radius: 18px;
+  }
   .msg .prov {
-    display: block; font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase;
+    display: block; font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase;
     color: var(--agent-muted); margin-bottom: 0.25rem;
   }
-  .msg.user .prov { color: #3c4152; }
   .toolchip {
-    align-self: flex-start; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.72rem;
-    background: transparent; border: 1px solid var(--agent-border); color: var(--agent-muted);
-    border-radius: 999px; padding: 0.25rem 0.7rem; animation: rise 0.35s ease-out;
+    align-self: flex-start; font-size: 0.76rem;
+    background: var(--agent-panel); border: 1px solid var(--agent-border); color: var(--agent-muted);
+    border-radius: 999px; padding: 0.3rem 0.8rem; animation: rise 0.35s ease-out;
   }
-  .toolchip b { color: var(--log-mcp); font-weight: 600; }
+  .toolchip b { color: var(--agent-ink); font-weight: 500; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.72rem; }
+  .toolchip.terminal { border-color: var(--log-app); }
   .toolchip.terminal b { color: var(--log-app); }
   .private {
-    align-self: flex-start; max-width: 88%; font-size: 0.78rem; border-radius: 10px; padding: 0.55rem 0.8rem;
-    background: transparent; border: 1px dashed var(--agent-accent); color: var(--agent-muted); animation: rise 0.35s ease-out;
+    align-self: flex-start; max-width: 88%; font-size: 0.76rem; border-radius: 12px; padding: 0.5rem 0.85rem;
+    background: var(--agent-panel); border: 1px solid var(--agent-border); color: var(--agent-muted); animation: rise 0.35s ease-out;
   }
-  .private b { color: var(--agent-ink); }
-  .private .lock { color: var(--agent-accent); }
+  .private b { color: var(--agent-ink); font-weight: 500; }
+  .private .lock { color: var(--agent-ink); display: block; margin-bottom: 0.2rem; font-weight: 600; }
   .done-row { align-self: center; margin-top: 0.4rem; text-align: center; animation: rise 0.35s ease-out; }
   .done-row .note { font-size: 0.72rem; color: var(--agent-muted); margin-top: 0.35rem; }
 
@@ -242,21 +270,31 @@
       <div class="tabbar" id="agentTabbar"><div class="tab ghost">no agent surface open</div></div>
       <div class="surface">
         <div class="agent" id="agentSurface">
-          <div class="agent-empty" id="agentEmpty">
-            <span class="big">✦</span>
-            The user's assistant of choice isn't open.<br>
-            A sidequest dispatch will open it — in a new tab, while Snug stays put.
+          <div class="agent-top">
+            <span class="model">ChatGPT&nbsp;5 <span class="caret">▾</span></span>
+            <span class="icons">⇪ ⋯</span>
           </div>
-          <div class="consent" id="consent">
-            <h3>Snug wants to start a sidequest</h3>
-            <div class="row"><span class="ok">✓</span><span>Verified origin — <b>app.snug.example</b> (envelope signature checked against its published keys)</span></div>
-            <div class="row"><span>⛭</span><span>Will connect to <b>mcp.snug.example</b></span></div>
-            <div class="row tools"><span>snug_get_shortlist</span><span>snug_get_product</span><span>snug_save_decision</span><span>sidequest__complete</span></div>
-            <div class="row"><span>↩</span><span>When finished: <b>return to Snug</b> (this tab closes — no navigation)</span></div>
-            <div class="thread-note">🧵 Continues your existing conversation <b>“Couch shopping”</b> from last week — thread key matched.</div>
-            <button class="agent-btn" id="allowBtn">Allow &amp; continue</button>
+          <div class="agent-scroll">
+            <div class="agent-empty" id="agentEmpty">
+              <span class="big">✦</span>
+              The user's assistant of choice isn't open.<br>
+              A sidequest dispatch will open it — in a new tab, while Snug stays put.
+            </div>
+            <div class="consent" id="consent">
+              <h3>Snug wants to start a sidequest</h3>
+              <div class="row"><span class="ok">✓</span><span>Verified origin — <b>app.snug.example</b> (envelope signature checked against its published keys)</span></div>
+              <div class="row"><span>⛭</span><span>Will connect to <b>mcp.snug.example</b></span></div>
+              <div class="row tools"><span>snug_get_shortlist</span><span>snug_get_product</span><span>snug_save_decision</span><span>sidequest__complete</span></div>
+              <div class="row"><span>↩</span><span>When finished: <b>return to Snug</b> (this tab closes — no navigation)</span></div>
+              <div class="thread-note">🧵 Continues your existing conversation <b>“Couch shopping”</b> from last week — thread key matched.</div>
+              <button class="agent-btn" id="allowBtn">Allow &amp; continue</button>
+            </div>
+            <div class="chat" id="chat"></div>
           </div>
-          <div class="chat" id="chat"></div>
+          <div class="composer">
+            <div class="pill"><span class="icon">⊕</span><span class="hint">Message ChatGPT</span><span class="icon">🎙</span></div>
+            <div class="disclaimer">Simulated ChatGPT-style interface — protocol demo only, not affiliated with OpenAI.</div>
+          </div>
         </div>
       </div>
     </div>
@@ -368,13 +406,14 @@
         $("askBtn").disabled = true;
         status("Dispatching sidequest…");
         addLog("app", "app → backend   POST /sidequests { shortlist:[mira,orla,pemb], thread.key:\"sofa-purchase-8812\" }", "§6.1");
-        addLog("app", "backend → app   201 { sessionId:\"sq_8f4b…\", launchUrl:\"https://assistant.example/sidequest/launch?envelope=eyJhbGciOi…\" }", "§7.2");
+        addLog("app", "backend → app   201 { sessionId:\"sq_8f4b…\", launchUrl:\"https://chatgpt.com/sidequest/launch?envelope=eyJhbGciOi…\" }", "§7.2");
       }
     },
     {
-      label: "The agent opens in a new tab. Snug's tab stays exactly where it is.",
+      label: "ChatGPT opens in a new tab. Snug's tab stays exactly where it is.",
       run() {
-        $("agentTabbar").innerHTML = '<div class="tab">✦ Assistant — Sidequest: Couch shopping</div>';
+        $("agentTabbar").innerHTML = '<div class="tab">✦ Couch shopping — ChatGPT · chatgpt.com</div>';
+        $("agentSurface").classList.add("open");
         $("agentEmpty").style.display = "none";
         $("consent").classList.add("on");
         addLog("host", "host: envelope JWS verified against app.snug.example/.well-known/sidequest-initiator ✓  aud ✓  exp ✓  jti unseen ✓", "§7.2, §10.2");
@@ -465,6 +504,7 @@
       label: "Dismiss, not redirect: the agent tab closes and focus lands back in Snug.",
       run() {
         $("agentTabbar").innerHTML = '<div class="tab ghost">tab closed — focus returned to Snug</div>';
+        $("agentSurface").classList.remove("open");
         $("agentSurface").querySelector(".chat").classList.remove("on");
         $("agentEmpty").style.display = "block";
         $("agentEmpty").innerHTML = '<span class="big">✦</span>Sidequest finished.<br>The agent surface dismissed itself — the user is back in Snug, work done, thread preserved for next time.';
