@@ -157,6 +157,9 @@
   }
   .composer .pill .icon { font-size: 1rem; }
   .composer .pill .hint { flex: 1; }
+  .composer .pill .hint.typing { color: var(--agent-ink); }
+  .composer .pill .hint.typing::after { content: "▍"; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
   .composer .disclaimer { text-align: center; font-size: 0.66rem; color: #7a7a7a; margin-top: 0.45rem; }
   .agent-empty { color: var(--agent-muted); font-size: 0.86rem; text-align: center; padding: 4rem 1.5rem; }
   .agent-empty .big { font-size: 1.6rem; display: block; margin-bottom: 0.5rem; opacity: 0.5; }
@@ -381,6 +384,26 @@
     m.scrollIntoView({ block: "nearest" });
     return m;
   }
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function typeUserMessage(text, done) {
+    const hint = document.querySelector(".composer .hint");
+    if (reducedMotion) { chatMsg("user", text); if (done) done(); return; }
+    hint.classList.add("typing");
+    let i = 0;
+    const iv = setInterval(function () {
+      i += 1;
+      hint.textContent = text.slice(0, i);
+      if (i >= text.length) {
+        clearInterval(iv);
+        setTimeout(function () {
+          hint.classList.remove("typing");
+          hint.textContent = "Message ChatGPT";
+          chatMsg("user", text);
+          if (done) done();
+        }, 400);
+      }
+    }, 26);
+  }
   function toolChip(name, args, terminal) {
     const t = document.createElement("div");
     t.className = "toolchip" + (terminal ? " terminal" : "");
@@ -502,11 +525,12 @@
           "My call: <b>the Orla</b>. The Pemberton is beautiful but $6,400 works against the spending goal you set in March. " +
           "The Mira's open-weave bouclé and Beau are a bad mix. The Orla is $2,890, the performance fabric handles pets, " +
           "and an L-shape fits how you actually use a couch — you told me comfort beats fashion every time.");
-        chatMsg("user", "Sold. Let's go with the Orla.");
-        toolChip("snug_save_decision", "{ choice:\"couch-orla-l\" }");
-        addLog("mcp", "host → server   tools/call snug_save_decision { choice:\"couch-orla-l\" }  _meta:{ seq:5 }", "§6.2");
-        addLog("sse", "backend ⇢ app   { type:\"decision-draft\", choice:\"couch-orla-l\" }", "§6.5");
-        markSnugActivity();
+        typeUserMessage("Sold. Let's go with the Orla.", function () {
+          toolChip("snug_save_decision", "{ choice:\"couch-orla-l\" }");
+          addLog("mcp", "host → server   tools/call snug_save_decision { choice:\"couch-orla-l\" }  _meta:{ seq:5 }", "§6.2");
+          addLog("sse", "backend ⇢ app   { type:\"decision-draft\", choice:\"couch-orla-l\" }", "§6.5");
+          markSnugActivity();
+        });
       }
     },
     {
